@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="ja" id="html-root">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🏓 ピックルボール 紅白対抗戦 スケジュール生成</title>
+  <title id="page-title">🏓 ピックルボール 紅白対抗戦 スケジュール生成</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -344,9 +344,15 @@
 </head>
 <body>
 
-<header>
-  <h1>🏓 ピックルボールダブルス 紅白対抗戦 スケジュール生成</h1>
-  <p>選手名・性別・対戦モードを設定して最適なスケジュールを自動生成 &nbsp;<span style="background:rgba(255,255,255,0.2);border-radius:4px;padding:2px 8px;font-size:0.75rem;font-weight:bold;letter-spacing:0.05em;">v1.4.0</span></p>
+<header style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+  <div>
+    <h1 id="header-title">🏓 ピックルボールダブルス 紅白対抗戦 スケジュール生成</h1>
+    <p id="header-sub">選手名・性別・対戦モードを設定して最適なスケジュールを自動生成 &nbsp;<span style="background:rgba(255,255,255,0.2);border-radius:4px;padding:2px 8px;font-size:0.75rem;font-weight:bold;letter-spacing:0.05em;">v1.5.0</span></p>
+  </div>
+  <div style="display:flex;gap:6px;flex-shrink:0;">
+    <button onclick="setLang('ja')" id="lang-ja" style="background:rgba(255,255,255,0.25);border:2px solid rgba(255,255,255,0.6);color:white;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:0.85rem;font-weight:bold;">🇯🇵 日本語</button>
+    <button onclick="setLang('en')" id="lang-en" style="background:rgba(255,255,255,0.1);border:2px solid rgba(255,255,255,0.3);color:rgba(255,255,255,0.7);border-radius:8px;padding:6px 14px;cursor:pointer;font-size:0.85rem;font-weight:bold;">🇺🇸 English</button>
+  </div>
 </header>
 
 <div class="container">
@@ -356,62 +362,62 @@
 
     <!-- 基本設定 -->
     <div class="panel">
-      <div class="panel-header">⚙️ 基本設定</div>
+      <div class="panel-header" id="panel-settings-title">⚙️ 基本設定</div>
       <div class="panel-body">
         <div class="form-group">
-          <label>コート数（面数）</label>
+          <label id="label-courts">コート数（面数）</label>
           <input type="number" id="courts" value="3" min="1" max="10">
         </div>
         <div class="form-group">
-          <label>試合数</label>
+          <label id="label-games">試合数</label>
           <input type="number" id="totalGames" value="12" min="1" max="30">
         </div>
         <div class="form-group">
-          <label>同一ペア最大回数</label>
+          <label id="label-maxpartner">同一ペア最大回数</label>
           <input type="number" id="maxPartner" value="2" min="1" max="10">
-          <div class="form-hint">同じ人とパートナーを組める最大回数（ミックス対戦は+1自動加算）</div>
+          <div class="form-hint" id="hint-maxpartner">同じ人とパートナーを組める最大回数（ミックス対戦は+1自動加算）</div>
         </div>
       </div>
     </div>
 
     <!-- 対戦モード -->
     <div class="panel">
-      <div class="panel-header">⚡ 対戦モード</div>
+      <div class="panel-header" id="panel-mode-title">⚡ 対戦モード</div>
       <div class="panel-body">
         <div class="mode-grid">
           <div class="mode-card selected" onclick="selectMode('any')" id="mode-any">
             <div class="mode-icon">🎲</div>
-            <div class="mode-name">制限なし</div>
-            <div class="mode-desc">性別を考慮しない</div>
+            <div class="mode-name" id="mode-any-name">制限なし</div>
+            <div class="mode-desc" id="mode-any-desc">性別を考慮しない</div>
           </div>
           <div class="mode-card" onclick="selectMode('same')" id="mode-same">
             <div class="mode-icon">👫</div>
-            <div class="mode-name">同性対戦</div>
-            <div class="mode-desc">男vs男 / 女vs女</div>
+            <div class="mode-name" id="mode-same-name">同性対戦</div>
+            <div class="mode-desc" id="mode-same-desc">男vs男 / 女vs女</div>
           </div>
           <div class="mode-card" onclick="selectMode('mixed')" id="mode-mixed">
             <div class="mode-icon">🤝</div>
-            <div class="mode-name">ミックス対戦</div>
-            <div class="mode-desc">男女ペアvs男女ペア</div>
+            <div class="mode-name" id="mode-mixed-name">ミックス対戦</div>
+            <div class="mode-desc" id="mode-mixed-desc">男女ペアvs男女ペア</div>
           </div>
           <div class="mode-card" onclick="selectMode('auto')" id="mode-auto">
             <div class="mode-icon">✨</div>
-            <div class="mode-name">自動（混合）</div>
-            <div class="mode-desc">同性・ミックス両方</div>
+            <div class="mode-name" id="mode-auto-name">自動（混合）</div>
+            <div class="mode-desc" id="mode-auto-desc">同性・ミックス両方</div>
           </div>
         </div>
         <div id="mode-note" style="font-size:0.75rem;color:#888;margin-top:6px;"></div>
         <!-- ミックス割合スライダー（autoモード時のみ表示） -->
         <div id="mixed-ratio-box" style="display:none;margin-top:10px;background:#f0f4f8;border-radius:8px;padding:10px 12px;">
           <label style="font-size:0.82rem;font-weight:bold;color:#555;display:flex;justify-content:space-between;align-items:center;">
-            <span>🤝 ミックス対戦の割合</span>
+            <span id="label-mixed-ratio">🤝 ミックス対戦の割合</span>
             <span id="mixed-ratio-label" style="color:#1F4E79;font-size:1rem;font-weight:bold;">50%</span>
           </label>
           <input type="range" id="mixed-ratio" min="0" max="100" step="10" value="50"
             oninput="document.getElementById('mixed-ratio-label').textContent=this.value+'%'"
             style="width:100%;margin-top:6px;accent-color:#2E75B6;">
           <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:#aaa;margin-top:2px;">
-            <span>同性のみ</span><span>半々</span><span>ミックスのみ</span>
+            <span id="mixed-ratio-left">同性のみ</span><span id="mixed-ratio-mid">半々</span><span id="mixed-ratio-right">ミックスのみ</span>
           </div>
         </div>
       </div>
@@ -452,29 +458,29 @@
     <!-- 検証 -->
     <div id="validation-box">設定を入力してください</div>
 
-    <button class="btn btn-primary" id="generate-btn" onclick="generate()">
+    <button class="btn btn-primary" id="btn-generate" onclick="generate()">
       🎯 スケジュール生成
     </button>
-    <button class="btn btn-excel" id="excel-btn" onclick="downloadExcel()" disabled>
+    <button class="btn btn-excel" id="btn-excel" onclick="downloadExcel()" disabled>
       📥 Excelダウンロード (.xlsx)
     </button>
-    <button class="btn" onclick="shareURL()" style="background:#f0f4f8;color:#2E75B6;border:1px solid #2E75B6;margin-top:8px;font-size:0.82rem;padding:8px;">
+    <button class="btn" id="btn-share" onclick="shareURL()" style="background:#f0f4f8;color:#2E75B6;border:1px solid #2E75B6;margin-top:8px;font-size:0.82rem;padding:8px;">
       🔗 URLで共有
     </button>
-    <button class="btn" onclick="showQRCode()" style="background:#f0f4f8;color:#28a745;border:1px solid #28a745;margin-top:8px;font-size:0.82rem;padding:8px;">
+    <button class="btn" id="btn-qr" onclick="showQRCode()" style="background:#f0f4f8;color:#28a745;border:1px solid #28a745;margin-top:8px;font-size:0.82rem;padding:8px;">
       📱 QRコードで共有
     </button>
     <!-- QRコードモーダル -->
     <div id="qr-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;">
       <div style="background:white;border-radius:16px;padding:28px 32px;text-align:center;max-width:320px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.3);">
-        <div style="font-size:1.1rem;font-weight:bold;margin-bottom:6px;">📱 QRコードで共有</div>
-        <div style="font-size:0.78rem;color:#888;margin-bottom:16px;">スマホでスキャンすると同じ設定で開けます</div>
+        <div id="qr-modal-title" style="font-size:1.1rem;font-weight:bold;margin-bottom:6px;">📱 QRコードで共有</div>
+        <div id="qr-modal-sub" style="font-size:0.78rem;color:#888;margin-bottom:16px;">スマホでスキャンすると同じ設定で開けます</div>
         <div id="qr-canvas-wrap" style="display:flex;justify-content:center;margin-bottom:16px;"></div>
         <div id="qr-url-text" style="font-size:0.7rem;color:#aaa;word-break:break-all;margin-bottom:16px;max-height:60px;overflow:hidden;"></div>
-        <button onclick="closeQRModal()" style="background:#2E75B6;color:white;border:none;border-radius:8px;padding:10px 28px;cursor:pointer;font-size:0.9rem;font-weight:bold;">閉じる</button>
+        <button id="qr-modal-close" onclick="closeQRModal()" style="background:#2E75B6;color:white;border:none;border-radius:8px;padding:10px 28px;cursor:pointer;font-size:0.9rem;font-weight:bold;">閉じる</button>
       </div>
     </div>
-    <button class="btn" onclick="resetSettings()" style="background:#f0f4f8;color:#666;border:1px solid #ddd;margin-top:8px;font-size:0.82rem;padding:8px;">
+    <button class="btn" id="btn-reset" onclick="resetSettings()" style="background:#f0f4f8;color:#666;border:1px solid #ddd;margin-top:8px;font-size:0.82rem;padding:8px;">
       🔄 設定をリセット
     </button>
     <div id="error-msg"></div>
@@ -837,7 +843,7 @@ function validate() {
   }
 
   document.getElementById('validation-box').innerHTML = html;
-  document.getElementById('generate-btn').disabled = !ok;
+  document.getElementById('btn-generate').disabled = !ok;
 }
 
 // ===== スケジュール生成 =====
@@ -2361,6 +2367,176 @@ function loadFromURL() {
 //   URLパラメータがある場合のみ上書きする
 const loadedFromURL = loadFromURL();
 if (loadedFromURL) renderPlayerLists();
+
+// ============================================================
+// 多言語対応（i18n）
+// ============================================================
+const i18n = {
+  ja: {
+    pageTitle: '🏓 ピックルボール 紅白対抗戦 スケジュール生成',
+    headerTitle: '🏓 ピックルボールダブルス 紅白対抗戦 スケジュール生成',
+    headerSub: '選手名・性別・対戦モードを設定して最適なスケジュールを自動生成',
+    panelSettings: '⚙️ 基本設定',
+    labelCourts: 'コート数（面数）',
+    labelGames: '試合数',
+    labelMaxPartner: '同一ペア最大回数',
+    hintMaxPartner: '同じ人とパートナーを組める最大回数（ミックス対戦は+1自動加算）',
+    panelMode: '⚡ 対戦モード',
+    modeAnyName: '制限なし', modeAnyDesc: '性別を考慮しない',
+    modeSameName: '同性対戦', modeSameDesc: '男vs男 / 女vs女',
+    modeMixedName: 'ミックス対戦', modeMixedDesc: '男女ペアvs男女ペア',
+    modeAutoName: '自動（混合）', modeAutoDesc: '同性・ミックス両方',
+    labelMixedRatio: '🤝 ミックス対戦の割合',
+    mixedRatioLeft: '同性のみ', mixedRatioMid: '半々', mixedRatioRight: 'ミックスのみ',
+    defaultRedTeam: '紅組', defaultWhiteTeam: '白組',
+    addPlayer: '＋ 選手を追加',
+    btnGenerate: '🎯 スケジュール生成',
+    btnExcel: '📥 Excelダウンロード (.xlsx)',
+    btnShare: '🔗 URLで共有',
+    btnQR: '📱 QRコードで共有',
+    btnReset: '🔄 設定をリセット',
+    tabSchedule: '試合一覧', tabPlayers: '個人別', tabPartners: 'パートナー',
+    tabOpponents: '対戦相手', tabScores: 'スコア集計', tabVerify: '✅ 検証',
+    statTotal: '総人数', statCourts: 'コート数', statGames: '試合数',
+    statPlay: '1人出場数', statRest: '1人休み数', statPartner: 'パートナー',
+    statOpp: '対戦相手', statMode: '対戦モード', statRetry: 'リトライ / 生成時間',
+    qrTitle: '📱 QRコードで共有',
+    qrSub: 'スマホでスキャンすると同じ設定で開けます',
+    qrClose: '閉じる',
+    resetConfirm: '設定をリセットしますか？（選手名・性別・チーム名・基本設定が初期値に戻ります）',
+    genderM: '♂ 男性', genderF: '♀ 女性',
+    modeNames: { any:'制限なし', same:'同性対戦', mixed:'ミックス対戦', auto:'自動（混合）' },
+    defaultRedPrefix: '紅', defaultWhitePrefix: '白',
+  },
+  en: {
+    pageTitle: '🏓 Pickleball Red vs White Schedule Generator',
+    headerTitle: '🏓 Pickleball Doubles Red vs White Schedule Generator',
+    headerSub: 'Set player names, gender & match mode to auto-generate an optimal schedule',
+    panelSettings: '⚙️ Settings',
+    labelCourts: 'Number of Courts',
+    labelGames: 'Number of Games',
+    labelMaxPartner: 'Max Partner Repeats',
+    hintMaxPartner: 'Max times to pair with the same person (+1 auto-added for mixed doubles)',
+    panelMode: '⚡ Match Mode',
+    modeAnyName: 'No Limit', modeAnyDesc: 'Ignore gender',
+    modeSameName: 'Same Gender', modeSameDesc: 'M vs M / F vs F',
+    modeMixedName: 'Mixed Doubles', modeMixedDesc: 'Mixed pair vs Mixed pair',
+    modeAutoName: 'Auto (Mixed)', modeAutoDesc: 'Both same & mixed',
+    labelMixedRatio: '🤝 Mixed Doubles Ratio',
+    mixedRatioLeft: 'Same only', mixedRatioMid: '50/50', mixedRatioRight: 'Mixed only',
+    defaultRedTeam: 'Red', defaultWhiteTeam: 'White',
+    addPlayer: '＋ Add Player',
+    btnGenerate: '🎯 Generate Schedule',
+    btnExcel: '📥 Download Excel (.xlsx)',
+    btnShare: '🔗 Share URL',
+    btnQR: '📱 Share QR Code',
+    btnReset: '🔄 Reset Settings',
+    tabSchedule: 'Schedule', tabPlayers: 'Players', tabPartners: 'Partners',
+    tabOpponents: 'Opponents', tabScores: 'Scores', tabVerify: '✅ Verify',
+    statTotal: 'Players', statCourts: 'Courts', statGames: 'Games',
+    statPlay: 'Games/Player', statRest: 'Rest/Player', statPartner: 'Partner',
+    statOpp: 'Opponent', statMode: 'Mode', statRetry: 'Retry / Time',
+    qrTitle: '📱 Share via QR Code',
+    qrSub: 'Scan with your phone to open with the same settings',
+    qrClose: 'Close',
+    resetConfirm: 'Reset all settings? (Player names, gender, team names & settings will be restored to defaults)',
+    genderM: '♂ Male', genderF: '♀ Female',
+    modeNames: { any:'No Limit', same:'Same Gender', mixed:'Mixed Doubles', auto:'Auto (Mixed)' },
+    defaultRedPrefix: 'R', defaultWhitePrefix: 'W',
+  }
+};
+
+let currentLang = 'ja';
+
+function setLang(lang) {
+  currentLang = lang;
+  const t = i18n[lang];
+
+  // ボタンのスタイル切り替え
+  document.getElementById('lang-ja').style.background = lang === 'ja' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.1)';
+  document.getElementById('lang-ja').style.borderColor = lang === 'ja' ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.3)';
+  document.getElementById('lang-ja').style.color = lang === 'ja' ? 'white' : 'rgba(255,255,255,0.7)';
+  document.getElementById('lang-en').style.background = lang === 'en' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.1)';
+  document.getElementById('lang-en').style.borderColor = lang === 'en' ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.3)';
+  document.getElementById('lang-en').style.color = lang === 'en' ? 'white' : 'rgba(255,255,255,0.7)';
+
+  // ページタイトル
+  document.getElementById('page-title').textContent = t.pageTitle;
+  document.getElementById('html-root').lang = lang;
+
+  // ヘッダー
+  document.getElementById('header-title').textContent = t.headerTitle;
+  const sub = document.getElementById('header-sub');
+  const badge = sub.querySelector('span');
+  sub.childNodes[0].textContent = t.headerSub + ' \u00a0';
+  // badge はそのまま
+
+  // 基本設定パネル
+  setText('panel-settings-title', t.panelSettings);
+  setText('label-courts', t.labelCourts);
+  setText('label-games', t.labelGames);
+  setText('label-maxpartner', t.labelMaxPartner);
+  setText('hint-maxpartner', t.hintMaxPartner);
+
+  // 対戦モードパネル
+  setText('panel-mode-title', t.panelMode);
+  setText('mode-any-name', t.modeAnyName); setText('mode-any-desc', t.modeAnyDesc);
+  setText('mode-same-name', t.modeSameName); setText('mode-same-desc', t.modeSameDesc);
+  setText('mode-mixed-name', t.modeMixedName); setText('mode-mixed-desc', t.modeMixedDesc);
+  setText('mode-auto-name', t.modeAutoName); setText('mode-auto-desc', t.modeAutoDesc);
+  setText('label-mixed-ratio', t.labelMixedRatio);
+  setText('mixed-ratio-left', t.mixedRatioLeft);
+  setText('mixed-ratio-mid', t.mixedRatioMid);
+  setText('mixed-ratio-right', t.mixedRatioRight);
+
+  // ボタン
+  setText('btn-generate', t.btnGenerate);
+  setText('btn-excel', t.btnExcel);
+  setText('btn-share', t.btnShare);
+  setText('btn-qr', t.btnQR);
+  setText('btn-reset', t.btnReset);
+
+  // タブ
+  const tabNames = ['schedule','players','partners','opponents','scores','verify'];
+  const tabLabels = [t.tabSchedule, t.tabPlayers, t.tabPartners, t.tabOpponents, t.tabScores, t.tabVerify];
+  document.querySelectorAll('.tab-btn').forEach((btn, i) => { if (tabLabels[i]) btn.textContent = tabLabels[i]; });
+
+  // QRモーダル
+  setText('qr-modal-title', t.qrTitle);
+  setText('qr-modal-sub', t.qrSub);
+  setText('qr-modal-close', t.qrClose);
+
+  // 選手リストの「追加」ボタン
+  document.querySelectorAll('.add-btn').forEach(btn => btn.textContent = t.addPlayer);
+
+  // 選手リストの性別セレクト
+  document.querySelectorAll('.gender-select').forEach(sel => {
+    const val = sel.value;
+    sel.innerHTML = `<option value="M" ${val==='M'?'selected':''}>${t.genderM}</option><option value="F" ${val==='F'?'selected':''}>${t.genderF}</option>`;
+  });
+
+  // 統計バーを再描画（生成済みの場合）
+  if (currentScheduleData) renderStats(currentScheduleData);
+
+  // 検証タブを再描画
+  if (currentScheduleData && document.getElementById('tab-verify').classList.contains('active')) {
+    renderVerifyTab(currentScheduleData);
+  }
+
+  // localStorageに言語設定を保存
+  try { localStorage.setItem('pickleball_lang', lang); } catch(e) {}
+}
+
+function setText(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = text;
+}
+
+// 言語設定を復元
+try {
+  const savedLang = localStorage.getItem('pickleball_lang');
+  if (savedLang === 'en') setLang('en');
+} catch(e) {}
 
 // ============================================================
 // QRコード生成
