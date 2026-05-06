@@ -565,16 +565,17 @@ function renderPlayerLists() {
 function renderList(team, players) {
   const el = document.getElementById(`${team}-list`);
   const numClass = team === 'red' ? 'num-red' : 'num-white';
+  const t = i18n[currentLang] || i18n['ja'];
   el.innerHTML = players.map((p, i) => `
     <div class="player-row">
       <span class="player-num ${numClass}">${p.id}</span>
       <input class="player-name-input" value="${p.name}"
-        oninput="updatePlayer('${team}',${i},'name',this.value)" placeholder="名前">
+        oninput="updatePlayer('${team}',${i},'name',this.value)" placeholder="${currentLang === 'en' ? 'Name' : '名前'}">
       <select class="gender-select" onchange="updatePlayer('${team}',${i},'gender',this.value)">
-        <option value="M" ${p.gender==='M'?'selected':''}>♂ 男性</option>
-        <option value="F" ${p.gender==='F'?'selected':''}>♀ 女性</option>
+        <option value="M" ${p.gender==='M'?'selected':''}>${t.genderM}</option>
+        <option value="F" ${p.gender==='F'?'selected':''}>${t.genderF}</option>
       </select>
-      <button class="del-btn" onclick="removePlayer('${team}',${i})" title="削除">✕</button>
+      <button class="del-btn" onclick="removePlayer('${team}',${i})" title="${currentLang === 'en' ? 'Remove' : '削除'}">✕</button>
     </div>
   `).join('');
 }
@@ -2296,20 +2297,39 @@ function loadFromLocalStorage() {
 }
 
 function resetSettings() {
-  if (!confirm('設定をリセットしますか？（選手名・性別・チーム名・基本設定が初期値に戻ります）')) return;
+  const t = i18n[currentLang];
+  if (!confirm(t.resetConfirm)) return;
   localStorage.removeItem(LS_KEY);
   document.getElementById('courts').value = 3;
   document.getElementById('totalGames').value = 12;
   document.getElementById('maxPartner').value = 2;
   document.getElementById('mixed-ratio').value = 50;
   document.getElementById('mixed-ratio-label').textContent = '50%';
-  // チーム名をデフォルトに戻す
-  document.getElementById('red-team-name').value = '紅組';
-  document.getElementById('red-team-label').textContent = '紅組';
-  document.getElementById('white-team-name').value = '白組';
-  document.getElementById('white-team-label').textContent = '白組';
+  // チーム名をデフォルトに戻す（言語に応じたデフォルト値）
+  const defaultRed = t.defaultRedTeam;
+  const defaultWhite = t.defaultWhiteTeam;
+  document.getElementById('red-team-name').value = defaultRed;
+  document.getElementById('red-team-label').textContent = defaultRed;
+  document.getElementById('white-team-name').value = defaultWhite;
+  document.getElementById('white-team-label').textContent = defaultWhite;
   selectMode('any');
-  initPlayers();
+  initPlayersWithLang();
+}
+
+// 言語に応じたデフォルト選手名でinitPlayers
+function initPlayersWithLang() {
+  const t = i18n[currentLang];
+  const rp = t.defaultRedPrefix;
+  const wp = t.defaultWhitePrefix;
+  redPlayers = Array.from({length: 8}, (_, i) => ({
+    id: i + 1, name: `${rp}${i+1}`, gender: i < 4 ? 'M' : 'F', team: 'red'
+  }));
+  whitePlayers = Array.from({length: 8}, (_, i) => ({
+    id: i + 9, name: `${wp}${i+9}`, gender: i < 4 ? 'M' : 'F', team: 'white'
+  }));
+  renderPlayerLists();
+  // 言語を再適用（性別セレクトを更新）
+  setLang(currentLang);
 }
 
 // ===== 初期化 =====
@@ -2547,14 +2567,8 @@ function setLang(lang) {
   setText('qr-modal-sub', t.qrSub);
   setText('qr-modal-close', t.qrClose);
 
-  // 選手リストの「追加」ボタン
-  document.querySelectorAll('.add-btn').forEach(btn => btn.textContent = t.addPlayer);
-
-  // 選手リストの性別セレクト
-  document.querySelectorAll('.gender-select').forEach(sel => {
-    const val = sel.value;
-    sel.innerHTML = `<option value="M" ${val==='M'?'selected':''}>${t.genderM}</option><option value="F" ${val==='F'?'selected':''}>${t.genderF}</option>`;
-  });
+  // 選手リストを再描画（性別セレクト・追加ボタン・プレースホルダーを更新）
+  renderPlayerLists();
 
   // 統計バーを再描画（生成済みの場合）
   if (currentScheduleData) renderStats(currentScheduleData);
