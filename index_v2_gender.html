@@ -2332,35 +2332,6 @@ function initPlayersWithLang() {
   setLang(currentLang);
 }
 
-// ===== 初期化 =====
-const loaded = loadFromLocalStorage();
-if (!loaded) initPlayers();
-else renderPlayerLists();
-
-document.querySelectorAll('#courts, #totalGames').forEach(el => el.addEventListener('input', () => { validate(); saveToLocalStorage(); }));
-
-// 選手データ変更時に自動保存（updatePlayer, addPlayer, removePlayer から呼ばれる）
-const _origUpdatePlayer = updatePlayer;
-window.updatePlayer = function(team, idx, field, val) {
-  _origUpdatePlayer(team, idx, field, val);
-  saveToLocalStorage();
-};
-const _origAddPlayer = addPlayer;
-window.addPlayer = function(team) {
-  _origAddPlayer(team);
-  saveToLocalStorage();
-};
-const _origRemovePlayer = removePlayer;
-window.removePlayer = function(team, idx) {
-  _origRemovePlayer(team, idx);
-  saveToLocalStorage();
-};
-const _origSelectMode = selectMode;
-window.selectMode = function(mode) {
-  _origSelectMode(mode);
-  saveToLocalStorage();
-};
-
 // ============================================================
 // URL共有
 // ============================================================
@@ -2422,12 +2393,6 @@ function loadFromURL() {
     return true;
   } catch(e) { return false; }
 }
-
-// URLパラメータが優先（URLパラメータ → localStorage → デフォルト）
-// ※ 初期化は最初の loadFromLocalStorage() / initPlayers() で済んでいるので
-//   URLパラメータがある場合のみ上書きする
-const loadedFromURL = loadFromURL();
-if (loadedFromURL) renderPlayerLists();
 
 // ============================================================
 // 多言語対応（i18n）
@@ -2587,11 +2552,52 @@ function setText(id, text) {
   if (el) el.textContent = text;
 }
 
-// 言語設定を復元
-try {
-  const savedLang = localStorage.getItem('pickleball_lang');
-  if (savedLang === 'en') setLang('en');
-} catch(e) {}
+// ===== 初期化（i18n定義後に実行） =====
+(function() {
+  // 言語設定を復元（最初に行う）
+  try {
+    const savedLang = localStorage.getItem('pickleball_lang');
+    if (savedLang === 'en') currentLang = 'en';
+  } catch(e) {}
+
+  // データ読み込み（localStorage → URL → デフォルト）
+  const loaded = loadFromLocalStorage();
+  if (!loaded) initPlayers();
+  else renderPlayerLists();
+
+  const loadedFromURL = loadFromURL();
+  if (loadedFromURL) renderPlayerLists();
+
+  // 言語UIを適用
+  setLang(currentLang);
+
+  // 入力変更時に自動保存
+  document.querySelectorAll('#courts, #totalGames').forEach(el =>
+    el.addEventListener('input', () => { validate(); saveToLocalStorage(); })
+  );
+
+  // 選手データ変更時に自動保存
+  const _origUpdatePlayer = updatePlayer;
+  window.updatePlayer = function(team, idx, field, val) {
+    _origUpdatePlayer(team, idx, field, val);
+    saveToLocalStorage();
+  };
+  const _origAddPlayer = addPlayer;
+  window.addPlayer = function(team) {
+    _origAddPlayer(team);
+    saveToLocalStorage();
+  };
+  const _origRemovePlayer = removePlayer;
+  window.removePlayer = function(team, idx) {
+    _origRemovePlayer(team, idx);
+    saveToLocalStorage();
+  };
+  const _origSelectMode = selectMode;
+  window.selectMode = function(mode) {
+    _origSelectMode(mode);
+    saveToLocalStorage();
+  };
+})();
 
 // ============================================================
 // QRコード生成
