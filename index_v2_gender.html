@@ -1,0 +1,2299 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🏓 ピックルボール 紅白対抗戦 スケジュール生成</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Hiragino Sans', 'Meiryo', sans-serif;
+      background: #f0f4f8;
+      color: #333;
+      min-height: 100vh;
+    }
+    header {
+      background: linear-gradient(135deg, #1F4E79, #2E75B6);
+      color: white;
+      padding: 20px 32px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    header h1 { font-size: 1.5rem; font-weight: bold; }
+    header p  { font-size: 0.85rem; opacity: 0.85; margin-top: 4px; }
+
+    .container {
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 20px 16px;
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .panel {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .panel-header {
+      background: #2E75B6;
+      color: white;
+      padding: 10px 18px;
+      font-weight: bold;
+      font-size: 0.9rem;
+    }
+    .panel-body { padding: 16px; }
+
+    .form-group { margin-bottom: 14px; }
+    .form-group label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: bold;
+      color: #555;
+      margin-bottom: 5px;
+    }
+    .form-group input[type="number"],
+    .form-group select {
+      width: 100%;
+      padding: 9px 11px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      transition: border-color 0.2s;
+    }
+    .form-group input:focus, .form-group select:focus {
+      outline: none; border-color: #2E75B6;
+    }
+    .form-hint { font-size: 0.75rem; color: #888; margin-top: 3px; }
+
+    /* ===== 選手リスト ===== */
+    .player-list {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+    .player-row {
+      display: grid;
+      grid-template-columns: 32px 1fr 80px 36px;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 0.85rem;
+    }
+    .player-row:last-child { border-bottom: none; }
+    .player-row:hover { background: #f8f9fa; }
+    .player-num {
+      font-weight: bold;
+      text-align: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      line-height: 28px;
+      font-size: 0.8rem;
+    }
+    .num-red   { background: #FFCCCC; color: #CC0000; }
+    .num-white { background: #DDDDFF; color: #0000CC; }
+    .player-name-input {
+      padding: 4px 8px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      width: 100%;
+    }
+    .gender-select {
+      padding: 4px 6px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      width: 100%;
+    }
+    .del-btn {
+      background: none;
+      border: none;
+      color: #ccc;
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 2px;
+    }
+    .del-btn:hover { color: #cc0000; }
+
+    .add-player-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .add-btn {
+      flex: 1;
+      padding: 7px;
+      border: 2px dashed #ddd;
+      background: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.82rem;
+      color: #888;
+      transition: all 0.2s;
+    }
+    .add-btn:hover { border-color: #2E75B6; color: #2E75B6; }
+
+    /* ===== 対戦モード ===== */
+    .mode-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+    .mode-card {
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      padding: 10px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+      font-size: 0.82rem;
+    }
+    .mode-card:hover { border-color: #2E75B6; }
+    .mode-card.selected { border-color: #2E75B6; background: #EBF3FB; }
+    .mode-card .mode-icon { font-size: 1.4rem; margin-bottom: 4px; }
+    .mode-card .mode-name { font-weight: bold; color: #333; }
+    .mode-card .mode-desc { font-size: 0.72rem; color: #888; margin-top: 2px; }
+
+    /* ===== 検証ボックス ===== */
+    #validation-box {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 12px;
+      font-size: 0.8rem;
+      line-height: 1.8;
+    }
+    .badge-ok   { color: #28a745; font-weight: bold; }
+    .badge-ng   { color: #dc3545; font-weight: bold; }
+    .badge-warn { color: #fd7e14; font-weight: bold; }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary { background: linear-gradient(135deg, #1F4E79, #2E75B6); color: white; }
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-excel { background: linear-gradient(135deg, #1D6F42, #2E9E5E); color: white; margin-top: 8px; }
+    .btn-excel:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-excel:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    #result-area { display: none; }
+
+    .stats-bar { display: flex; gap: 10px; flex-wrap: wrap; }
+    .stat-card {
+      flex: 1; min-width: 90px;
+      background: #f0f4f8; border-radius: 8px;
+      padding: 8px 12px; text-align: center;
+    }
+    .stat-card .val { font-size: 1.3rem; font-weight: bold; color: #1F4E79; }
+    .stat-card .lbl { font-size: 0.72rem; color: #666; margin-top: 2px; }
+
+    .schedule-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .schedule-table th {
+      background: #2F2F2F; color: white;
+      padding: 7px 9px; text-align: center; font-size: 0.78rem;
+    }
+    .schedule-table td { padding: 6px 9px; text-align: center; border-bottom: 1px solid #eee; }
+    .game-cell { background: #1F4E79; color: white; font-weight: bold; }
+    .court-cell { background: #FFF2CC; font-weight: bold; font-size: 0.8rem; color: #555500; }
+    .red-cell   { background: #FFCCCC; color: #CC0000; font-weight: bold; }
+    .white-cell { background: #DDDDFF; color: #0000CC; font-weight: bold; }
+    .vs-cell    { color: #999; font-size: 0.78rem; }
+    .rest-red   { background: #FF9999; color: #880000; font-weight: bold; font-size: 0.8rem; }
+    .rest-white { background: #9999FF; color: #000088; font-weight: bold; font-size: 0.8rem; }
+    .sep-cell   { background: #CCCCCC; width: 6px; padding: 0; }
+    .game-separator td { border-bottom: 2px solid #888; }
+
+    /* 性別バッジ */
+    .g-m { color: #1565C0; font-size: 0.7rem; }
+    .g-f { color: #C62828; font-size: 0.7rem; }
+
+    .tabs { display: flex; gap: 4px; margin-bottom: 14px; border-bottom: 2px solid #ddd; }
+    .tab-btn {
+      padding: 7px 14px; border: none; background: none; cursor: pointer;
+      font-size: 0.85rem; color: #666;
+      border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s;
+    }
+    .tab-btn.active { color: #1F4E79; border-bottom-color: #1F4E79; font-weight: bold; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .player-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    .player-table th {
+      background: #f0f4f8; padding: 6px 9px; text-align: center;
+      font-size: 0.76rem; color: #555; border-bottom: 2px solid #ddd;
+    }
+    .player-table td { padding: 5px 9px; text-align: center; border-bottom: 1px solid #f0f0f0; }
+    .player-table tr:hover td { background: #f8f9fa; }
+    .game-dot {
+      display: inline-block; width: 20px; height: 20px; border-radius: 50%;
+      line-height: 20px; font-size: 0.68rem; font-weight: bold; margin: 1px;
+    }
+    .dot-play { background: #2E75B6; color: white; }
+    .dot-rest { background: #ddd; color: #999; }
+
+    #loading { display: none; text-align: center; padding: 40px; color: #666; }
+    .spinner {
+      width: 36px; height: 36px; border: 4px solid #ddd; border-top-color: #2E75B6;
+      border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 10px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-box {
+      background: #fff3f3; border: 1px solid #ffcccc; border-radius: 8px;
+      padding: 10px 14px; color: #cc0000; font-size: 0.85rem; margin-top: 10px;
+    }
+
+    @media (max-width: 900px) { .container { grid-template-columns: 1fr; } }
+
+    /* ===== 印刷対応 ===== */
+    @media print {
+      @page { size: A4 landscape; margin: 10mm; }
+      body { background: white; font-size: 10pt; }
+      header { padding: 8px 16px; box-shadow: none; }
+      header h1 { font-size: 1.1rem; }
+      header p { font-size: 0.75rem; }
+      .container { display: block; padding: 0; max-width: 100%; }
+      /* 左パネル（設定）を非表示 */
+      .container > div:first-child { display: none; }
+      /* 右パネルを全幅 */
+      .container > div:last-child { width: 100%; }
+      #loading { display: none !important; }
+      #result-area { display: block !important; }
+      .panel { box-shadow: none; border: 1px solid #ccc; margin-bottom: 8px; }
+      .panel-header { padding: 6px 12px; font-size: 0.85rem; }
+      .panel-body { padding: 8px; }
+      .tabs { display: none; }
+      /* 試合一覧タブのみ表示 */
+      .tab-content { display: none !important; }
+      #tab-schedule { display: block !important; }
+      .schedule-table { font-size: 8pt; }
+      .schedule-table th, .schedule-table td { padding: 3px 5px; }
+      .stats-bar { flex-wrap: wrap; gap: 6px; }
+      .stat-card { min-width: 70px; padding: 4px 8px; }
+      .stat-card .val { font-size: 1rem; }
+      .btn, .add-btn, .del-btn { display: none; }
+      /* 試合の区切りを明確に */
+      .game-separator td { border-bottom: 1.5pt solid #555; }
+      /* 印刷ボタン */
+      .print-btn { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🏓 ピックルボールダブルス 紅白対抗戦 スケジュール生成</h1>
+  <p>選手名・性別・対戦モードを設定して最適なスケジュールを自動生成 &nbsp;<span style="background:rgba(255,255,255,0.2);border-radius:4px;padding:2px 8px;font-size:0.75rem;font-weight:bold;letter-spacing:0.05em;">v1.2.0</span></p>
+</header>
+
+<div class="container">
+
+  <!-- ===== 左パネル ===== -->
+  <div>
+
+    <!-- 基本設定 -->
+    <div class="panel">
+      <div class="panel-header">⚙️ 基本設定</div>
+      <div class="panel-body">
+        <div class="form-group">
+          <label>コート数（面数）</label>
+          <input type="number" id="courts" value="3" min="1" max="10">
+        </div>
+        <div class="form-group">
+          <label>試合数</label>
+          <input type="number" id="totalGames" value="12" min="1" max="30">
+        </div>
+        <div class="form-group">
+          <label>同一ペア最大回数</label>
+          <input type="number" id="maxPartner" value="2" min="1" max="10">
+          <div class="form-hint">同じ人とパートナーを組める最大回数（ミックス対戦は+1自動加算）</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 対戦モード -->
+    <div class="panel">
+      <div class="panel-header">⚡ 対戦モード</div>
+      <div class="panel-body">
+        <div class="mode-grid">
+          <div class="mode-card selected" onclick="selectMode('any')" id="mode-any">
+            <div class="mode-icon">🎲</div>
+            <div class="mode-name">制限なし</div>
+            <div class="mode-desc">性別を考慮しない</div>
+          </div>
+          <div class="mode-card" onclick="selectMode('same')" id="mode-same">
+            <div class="mode-icon">👫</div>
+            <div class="mode-name">同性対戦</div>
+            <div class="mode-desc">男vs男 / 女vs女</div>
+          </div>
+          <div class="mode-card" onclick="selectMode('mixed')" id="mode-mixed">
+            <div class="mode-icon">🤝</div>
+            <div class="mode-name">ミックス対戦</div>
+            <div class="mode-desc">男女ペアvs男女ペア</div>
+          </div>
+          <div class="mode-card" onclick="selectMode('auto')" id="mode-auto">
+            <div class="mode-icon">✨</div>
+            <div class="mode-name">自動（混合）</div>
+            <div class="mode-desc">同性・ミックス両方</div>
+          </div>
+        </div>
+        <div id="mode-note" style="font-size:0.75rem;color:#888;margin-top:6px;"></div>
+        <!-- ミックス割合スライダー（autoモード時のみ表示） -->
+        <div id="mixed-ratio-box" style="display:none;margin-top:10px;background:#f0f4f8;border-radius:8px;padding:10px 12px;">
+          <label style="font-size:0.82rem;font-weight:bold;color:#555;display:flex;justify-content:space-between;align-items:center;">
+            <span>🤝 ミックス対戦の割合</span>
+            <span id="mixed-ratio-label" style="color:#1F4E79;font-size:1rem;font-weight:bold;">50%</span>
+          </label>
+          <input type="range" id="mixed-ratio" min="0" max="100" step="10" value="50"
+            oninput="document.getElementById('mixed-ratio-label').textContent=this.value+'%'"
+            style="width:100%;margin-top:6px;accent-color:#2E75B6;">
+          <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:#aaa;margin-top:2px;">
+            <span>同性のみ</span><span>半々</span><span>ミックスのみ</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 紅組 -->
+    <div class="panel">
+      <div class="panel-header" style="background:#CC4444" id="red-panel-header">🔴 <span id="red-team-label">紅組</span></div>
+      <div class="panel-body">
+        <div style="margin-bottom:8px">
+          <input type="text" id="red-team-name" value="紅組" placeholder="チーム名"
+            oninput="updateTeamName('red',this.value)"
+            style="width:100%;padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.85rem;">
+        </div>
+        <div class="player-list" id="red-list"></div>
+        <div class="add-player-row">
+          <button class="add-btn" onclick="addPlayer('red')">＋ 選手を追加</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 白組 -->
+    <div class="panel">
+      <div class="panel-header" style="background:#4444CC" id="white-panel-header">🔵 <span id="white-team-label">白組</span></div>
+      <div class="panel-body">
+        <div style="margin-bottom:8px">
+          <input type="text" id="white-team-name" value="白組" placeholder="チーム名"
+            oninput="updateTeamName('white',this.value)"
+            style="width:100%;padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.85rem;">
+        </div>
+        <div class="player-list" id="white-list"></div>
+        <div class="add-player-row">
+          <button class="add-btn" onclick="addPlayer('white')">＋ 選手を追加</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 検証 -->
+    <div id="validation-box">設定を入力してください</div>
+
+    <button class="btn btn-primary" id="generate-btn" onclick="generate()">
+      🎯 スケジュール生成
+    </button>
+    <button class="btn btn-excel" id="excel-btn" onclick="downloadExcel()" disabled>
+      📥 Excelダウンロード (.xlsx)
+    </button>
+    <button class="btn" onclick="shareURL()" style="background:#f0f4f8;color:#2E75B6;border:1px solid #2E75B6;margin-top:8px;font-size:0.82rem;padding:8px;">
+      🔗 URLで共有
+    </button>
+    <button class="btn" onclick="resetSettings()" style="background:#f0f4f8;color:#666;border:1px solid #ddd;margin-top:8px;font-size:0.82rem;padding:8px;">
+      🔄 設定をリセット
+    </button>
+    <div id="error-msg"></div>
+  </div>
+
+  <!-- ===== 右パネル ===== -->
+  <div>
+    <div id="loading">
+      <div class="spinner"></div>
+      <div>スケジュール生成中...</div>
+    </div>
+
+    <div id="result-area">
+      <div class="panel" style="margin-bottom:16px">
+        <div class="panel-header">📊 統計</div>
+        <div class="panel-body">
+          <div class="stats-bar" id="stats-bar"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">📋 スケジュール</div>
+        <div class="panel-body">
+          <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('schedule')">試合一覧</button>
+            <button class="tab-btn" onclick="switchTab('players')">個人別</button>
+            <button class="tab-btn" onclick="switchTab('partners')">パートナー</button>
+            <button class="tab-btn" onclick="switchTab('opponents')">対戦相手</button>
+            <button class="tab-btn" onclick="switchTab('scores')">スコア集計</button>
+            <button class="tab-btn" onclick="switchTab('verify')">✅ 検証</button>
+          </div>
+          <div id="tab-schedule" class="tab-content active">
+            <div style="overflow-x:auto"><table class="schedule-table" id="schedule-table"></table></div>
+          </div>
+          <div id="tab-players" class="tab-content">
+            <div style="overflow-x:auto"><table class="player-table" id="player-table"></table></div>
+          </div>
+          <div id="tab-partners" class="tab-content">
+            <div style="overflow-x:auto" id="partner-table"></div>
+          </div>
+          <div id="tab-opponents" class="tab-content">
+            <div style="overflow-x:auto"><table class="player-table" id="opponent-table"></table></div>
+          </div>
+          <div id="tab-scores" class="tab-content">
+            <div id="score-area"></div>
+          </div>
+          <div id="tab-verify" class="tab-content">
+            <div id="verify-area"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// 選手データ管理
+// ============================================================
+let redPlayers  = [];
+let whitePlayers = [];
+let currentMode = 'any';
+let currentScheduleData = null;
+
+// 初期データ（8人ずつ）
+function initPlayers() {
+  redPlayers = Array.from({length: 8}, (_, i) => ({
+    id: i + 1, name: `紅${i+1}`, gender: i < 4 ? 'M' : 'F', team: 'red'
+  }));
+  whitePlayers = Array.from({length: 8}, (_, i) => ({
+    id: i + 9, name: `白${i+9}`, gender: i < 4 ? 'M' : 'F', team: 'white'
+  }));
+  renderPlayerLists();
+}
+
+function renderPlayerLists() {
+  renderList('red',   redPlayers);
+  renderList('white', whitePlayers);
+  validate();
+}
+
+function renderList(team, players) {
+  const el = document.getElementById(`${team}-list`);
+  const numClass = team === 'red' ? 'num-red' : 'num-white';
+  el.innerHTML = players.map((p, i) => `
+    <div class="player-row">
+      <span class="player-num ${numClass}">${p.id}</span>
+      <input class="player-name-input" value="${p.name}"
+        oninput="updatePlayer('${team}',${i},'name',this.value)" placeholder="名前">
+      <select class="gender-select" onchange="updatePlayer('${team}',${i},'gender',this.value)">
+        <option value="M" ${p.gender==='M'?'selected':''}>♂ 男性</option>
+        <option value="F" ${p.gender==='F'?'selected':''}>♀ 女性</option>
+      </select>
+      <button class="del-btn" onclick="removePlayer('${team}',${i})" title="削除">✕</button>
+    </div>
+  `).join('');
+}
+
+function updatePlayer(team, idx, field, val) {
+  const arr = team === 'red' ? redPlayers : whitePlayers;
+  arr[idx][field] = val;
+  validate();
+}
+
+function reassignIds() {
+  // 紅組: 1〜N（連番）、デフォルト名パターン（「紅X」）の場合は名前も更新
+  redPlayers.forEach((p, i) => {
+    const oldId = p.id;
+    const newId = i + 1;
+    // 名前が「紅{旧ID}」のデフォルト名なら自動更新
+    if (p.name === `紅${oldId}`) p.name = `紅${newId}`;
+    p.id = newId;
+  });
+  // 白組: N+1〜N+M（紅組の最後+1から連番）、デフォルト名パターンも更新
+  const redCount = redPlayers.length;
+  whitePlayers.forEach((p, i) => {
+    const oldId = p.id;
+    const newId = redCount + i + 1;
+    // 名前が「白{旧ID}」のデフォルト名なら自動更新
+    if (p.name === `白${oldId}`) p.name = `白${newId}`;
+    p.id = newId;
+  });
+}
+
+function addPlayer(team) {
+  const arr = team === 'red' ? redPlayers : whitePlayers;
+  // 仮のIDで追加（reassignIdsで正しいIDに振り直す）
+  arr.push({ id: 0, name: '', gender: 'M', team });
+  reassignIds();
+  // 追加した選手のデフォルト名を設定
+  const newPlayer = arr[arr.length - 1];
+  newPlayer.name = team === 'red' ? `紅${newPlayer.id}` : `白${newPlayer.id}`;
+  renderPlayerLists();
+}
+
+function removePlayer(team, idx) {
+  const arr = team === 'red' ? redPlayers : whitePlayers;
+  if (arr.length <= 2) { alert('最低2人必要です'); return; }
+  arr.splice(idx, 1);
+  reassignIds();
+  renderPlayerLists();
+}
+
+// ===== チーム名変更 =====
+function updateTeamName(team, name) {
+  const label = document.getElementById(`${team}-team-label`);
+  if (label) label.textContent = name || (team === 'red' ? '紅組' : '白組');
+  saveToLocalStorage();
+  // スケジュール生成済みなら再描画
+  if (currentScheduleData) renderResults(currentScheduleData);
+}
+
+// ===== 対戦モード =====
+function selectMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-card').forEach(el => el.classList.remove('selected'));
+  document.getElementById(`mode-${mode}`).classList.add('selected');
+  const notes = {
+    any:   '',
+    same:  '💡 男性同士・女性同士のペアが対戦します',
+    mixed: '💡 男女ペア（ミックス）同士が対戦します',
+    auto:  '💡 同性対戦とミックス対戦を自動で組み合わせます'
+  };
+  document.getElementById('mode-note').textContent = notes[mode];
+  // autoモード時のみスライダーを表示
+  document.getElementById('mixed-ratio-box').style.display = (mode === 'auto') ? 'block' : 'none';
+  validate();
+}
+
+// ===== 検証 =====
+function validate() {
+  const courts     = parseInt(document.getElementById('courts').value) || 0;
+  const totalGames = parseInt(document.getElementById('totalGames').value) || 0;
+  const half = Math.min(redPlayers.length, whitePlayers.length);
+  const totalPlayers = redPlayers.length + whitePlayers.length;
+  const playersPerGame = courts * 4;
+  const restPerGame = totalPlayers - playersPerGame;
+  const restPerSide = restPerGame / 2;
+  const gamesPerPlayer = totalPlayers > 0 ? (totalGames * playersPerGame) / totalPlayers : 0;
+
+  let html = '', ok = true;
+
+  if (redPlayers.length !== whitePlayers.length) {
+    html += `<span class="badge-ng">❌ 紅組(${redPlayers.length}人)と白組(${whitePlayers.length}人)の人数を揃えてください</span><br>`;
+    ok = false;
+  }
+  if (courts >= half && half > 0) {
+    html += `<span class="badge-ng">❌ コート数は片組人数(${half})より少なくしてください</span><br>`;
+    ok = false;
+  }
+  if (restPerSide !== Math.floor(restPerSide) && ok) {
+    html += `<span class="badge-ng">❌ 片組の休み人数が整数になりません</span><br>`;
+    ok = false;
+  }
+
+  // 性別チェック（数学的可能性の検証）
+  if (ok && currentMode !== 'any') {
+    const redM  = redPlayers.filter(p => p.gender === 'M').length;
+    const redF  = redPlayers.filter(p => p.gender === 'F').length;
+    const whtM  = whitePlayers.filter(p => p.gender === 'M').length;
+    const whtF  = whitePlayers.filter(p => p.gender === 'F').length;
+    const playPerSide = courts * 2; // 片組の出場人数（コート数×2人）
+    const restPerSideInt = Math.floor(restPerSide);
+
+    if (currentMode === 'same') {
+      // 同性対戦: 各試合で出場する男性・女性がそれぞれ「コート数の倍数」である必要がある
+      // 休みを男女均等に取れるか確認
+      // 紅組: 男redM人・女redF人 → 出場はplayPerSide人
+      // 休みrestPerSideInt人を男女から取る → 出場男性数 = redM - restM, 出場女性数 = redF - restF
+      // 出場男性数がコート数の倍数になるrestMが存在するか
+      let redPossible = false, whtPossible = false;
+      for (let restM = 0; restM <= Math.min(redM, restPerSideInt); restM++) {
+        const restF = restPerSideInt - restM;
+        if (restF < 0 || restF > redF) continue;
+        const playM = redM - restM, playF = redF - restF;
+        if (playM % 2 === 0 && playF % 2 === 0) { redPossible = true; break; }
+      }
+      for (let restM = 0; restM <= Math.min(whtM, restPerSideInt); restM++) {
+        const restF = restPerSideInt - restM;
+        if (restF < 0 || restF > whtF) continue;
+        const playM = whtM - restM, playF = whtF - restF;
+        if (playM % 2 === 0 && playF % 2 === 0) { whtPossible = true; break; }
+      }
+      if (!redPossible || !whtPossible) {
+        html += `<span class="badge-ng">❌ 同性対戦モードは現在の設定では実現できません</span><br>`;
+        html += `<span class="badge-ng">　紅組: 男${redM}人・女${redF}人、${restPerSideInt}人休み → 出場男女数が偶数にならない</span><br>`;
+        html += `<span class="badge-warn">💡 男女の人数を偶数にするか、コート数・人数を調整してください</span><br>`;
+        ok = false;
+      } else if (redM === 0 || redF === 0) {
+        html += `<span class="badge-warn">⚠️ 同性対戦モードは男女両方必要です</span><br>`;
+      }
+    }
+
+    if (currentMode === 'mixed') {
+      // ミックス対戦: 各試合で出場する男性・女性が同数（コート数と同じ）である必要がある
+      let redPossible = false, whtPossible = false;
+      for (let restM = 0; restM <= Math.min(redM, restPerSideInt); restM++) {
+        const restF = restPerSideInt - restM;
+        if (restF < 0 || restF > redF) continue;
+        const playM = redM - restM, playF = redF - restF;
+        if (playM === playF) { redPossible = true; break; }
+      }
+      for (let restM = 0; restM <= Math.min(whtM, restPerSideInt); restM++) {
+        const restF = restPerSideInt - restM;
+        if (restF < 0 || restF > whtF) continue;
+        const playM = whtM - restM, playF = whtF - restF;
+        if (playM === playF) { whtPossible = true; break; }
+      }
+      if (!redPossible || !whtPossible) {
+        html += `<span class="badge-ng">❌ ミックス対戦モードは現在の設定では実現できません</span><br>`;
+        html += `<span class="badge-warn">💡 男女同数（紅: 男${redM}人・女${redF}人 → 同数にする）にしてください</span><br>`;
+        ok = false;
+      } else if (redM !== redF || whtM !== whtF) {
+        // 男女比が不均等な場合、少ない方が毎試合全員出場（休みなし）になるか確認
+        const checkMixedRest = (mCount, fCount, label) => {
+          const minCount = Math.min(mCount, fCount); // ミックスで出場できる人数
+          const majorGender = mCount < fCount ? '男性' : '女性';
+          const majorCount = Math.min(mCount, fCount);
+          // ミックスコートで必要な男性数 = コート数 = majorCount
+          // majorCountが少ない方の人数と等しい → 毎試合全員出場
+          if (mCount !== fCount) {
+            const minorCount = Math.min(mCount, fCount);
+            const minorGender = mCount < fCount ? '男性' : '女性';
+            // 各試合でminorCount人全員出場 → 休みゼロ
+            return { ok: false, minorGender, minorCount, label };
+          }
+          return { ok: true };
+        };
+        const redCheck = checkMixedRest(redM, redF, '紅組');
+        const whtCheck = checkMixedRest(whtM, whtF, '白組');
+        if (!redCheck.ok || !whtCheck.ok) {
+          const bad = !redCheck.ok ? redCheck : whtCheck;
+          html += `<span class="badge-warn">⚠️ ミックスモードは男女同数推奨（紅: 男${redM}女${redF}、白: 男${whtM}女${whtF}）</span><br>`;
+          html += `<span class="badge-warn">　⚠️ ${bad.label}の${bad.minorGender}（${bad.minorCount}人）は毎試合全員出場となり、休みが取れません</span><br>`;
+          html += `<span class="badge-warn">　💡 解決策: ① ${bad.label}の男女比を均等にする ② 対戦モードを「制限なし」に変更する</span><br>`;
+          html += `<span style="font-size:0.78rem;color:#888;margin-left:1em">　　<button onclick="selectMode('any')" style="background:#2E75B6;color:white;border:none;border-radius:4px;padding:2px 10px;cursor:pointer;font-size:0.78rem">「制限なし」に切り替える</button></span><br>`;
+        } else {
+          html += `<span class="badge-warn">⚠️ ミックスモードは男女同数推奨（紅: 男${redM}女${redF}、白: 男${whtM}女${whtF}）</span><br>`;
+        }
+      }
+    }
+
+    if (currentMode === 'auto') {
+      // autoモードの数学的可能性チェック
+      // 男男ペア vs 男男ペア / 女女ペア vs 女女ペア / 男女ペア vs 男女ペア
+      // 出場男性数・女性数が偶数になるか確認
+      const redM  = redPlayers.filter(p => p.gender === 'M').length;
+      const redF  = redPlayers.filter(p => p.gender === 'F').length;
+      const whtM  = whitePlayers.filter(p => p.gender === 'M').length;
+      const whtF  = whitePlayers.filter(p => p.gender === 'F').length;
+      const restPerSideInt = Math.floor(restPerSide);
+      let redPossible = false, whtPossible = false;
+      for (let rm = 0; rm <= Math.min(redM, restPerSideInt); rm++) {
+        const rf = restPerSideInt - rm;
+        if (rf < 0 || rf > redF) continue;
+        const playM = redM - rm, playF = redF - rf;
+        if (playM % 2 === 0 && playF % 2 === 0) { redPossible = true; break; }
+      }
+      for (let rm = 0; rm <= Math.min(whtM, restPerSideInt); rm++) {
+        const rf = restPerSideInt - rm;
+        if (rf < 0 || rf > whtF) continue;
+        const playM = whtM - rm, playF = whtF - rf;
+        if (playM % 2 === 0 && playF % 2 === 0) { whtPossible = true; break; }
+      }
+      if (!redPossible || !whtPossible) {
+        html += `<span class="badge-warn">⚠️ 自動モード: 出場男女数が偶数にならないため、一部の試合でミックス対戦になる場合があります</span><br>`;
+      } else {
+        html += `<span class="badge-ok">✓</span> 自動モード: 男男vs男男 / 女女vs女女 / 男女vs男女 を組み合わせます<br>`;
+      }
+
+      // 男女比の均等休みチェック（警告のみ、生成は許可）
+      // 各組の男女比が「全員均等に休める」かを確認
+      // 条件: 各試合の男休み・女休みが整数になる → 男の総休み/試合数 が整数
+      // 紅組: 男redM人 → 総休み = redM × restPerPlayer → 平均 = redM × restPerPlayer / totalGames
+      //       = redM × (totalGames - gamesPerPlayer) / totalGames
+      // これが整数になるには: redM × restPerPlayer が totalGames の倍数
+      if (Number.isInteger(gamesPerPlayer)) {
+        const restPerPlayer = totalGames - gamesPerPlayer;
+        // 各組の男女比チェック
+        const checkUniform = (mCount, fCount, label) => {
+          // 各試合の男休み数の合計 = mCount × restPerPlayer
+          // 各試合の女休み数の合計 = fCount × restPerPlayer
+          // 各試合の男休み数 = mCount × restPerPlayer / totalGames
+          const avgMRest = (mCount * restPerPlayer) / totalGames;
+          const avgFRest = (fCount * restPerPlayer) / totalGames;
+          // 整数でない場合、一部の試合で男性が全員出場（休みなし）になる
+          if (!Number.isInteger(avgMRest) || !Number.isInteger(avgFRest)) {
+            return { ok: false, avgMRest, avgFRest, mCount, fCount };
+          }
+          return { ok: true };
+        };
+        const redCheck = checkUniform(redM, redF, '紅組');
+        const whtCheck = checkUniform(whtM, whtF, '白組');
+        if (!redCheck.ok || !whtCheck.ok) {
+          const badGroup = !redCheck.ok ? { label: '紅組', ...redCheck } : { label: '白組', ...whtCheck };
+          const { label, avgMRest, avgFRest, mCount, fCount } = badGroup;
+          html += `<span class="badge-warn">⚠️ ${label}の男女比（男${mCount}:女${fCount}）では、一部の選手の休み回数が不均等になります</span><br>`;
+          html += `<span class="badge-warn">　男性の平均休み: ${avgMRest.toFixed(2)}回/試合（整数でない）→ 休み回数に最大1試合の差が生じます</span><br>`;
+          html += `<span class="badge-warn">　💡 解決策: ① ${label}の男女比を均等にする ② 対戦モードを「制限なし」に変更する</span><br>`;
+          html += `<span style="font-size:0.78rem;color:#888;margin-left:1em">　　<button onclick="selectMode('any')" style="background:#2E75B6;color:white;border:none;border-radius:4px;padding:2px 10px;cursor:pointer;font-size:0.78rem">「制限なし」に切り替える</button></span><br>`;
+        }
+      }
+    }
+  }
+
+  if (ok) {
+    const isInt = Number.isInteger(gamesPerPlayer);
+    html += `<span class="badge-ok">✓</span> 総人数: ${totalPlayers}人（紅${redPlayers.length}人・白${whitePlayers.length}人）<br>`;
+    html += `<span class="badge-ok">✓</span> 1試合あたり出場: ${playersPerGame}人、休み: ${restPerGame}人<br>`;
+    if (isInt) {
+      html += `<span class="badge-ok">✓</span> 1人あたり出場: <b>${gamesPerPlayer}試合</b>、休み: <b>${totalGames - gamesPerPlayer}試合</b><br>`;
+    } else {
+      html += `<span class="badge-warn">⚠️</span> 1人あたり出場: ${gamesPerPlayer.toFixed(1)}試合（不均等）<br>`;
+      let suggestions = [];
+      for (let t = Math.max(1, totalGames - 5); t <= totalGames + 5; t++) {
+        if ((t * playersPerGame) % totalPlayers === 0) suggestions.push(t);
+      }
+      if (suggestions.length > 0) html += `<span class="badge-warn">→ 試合数 ${suggestions.join(' or ')} を推奨</span><br>`;
+    }
+  }
+
+  document.getElementById('validation-box').innerHTML = html;
+  document.getElementById('generate-btn').disabled = !ok;
+}
+
+// ===== スケジュール生成 =====
+function generate() {
+  const courts     = parseInt(document.getElementById('courts').value);
+  const totalGames = parseInt(document.getElementById('totalGames').value);
+
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('result-area').style.display = 'none';
+  document.getElementById('error-msg').innerHTML = '';
+
+  setTimeout(() => {
+    try {
+      // 重複が最小になるまで最大200回再試行し、最良解を採用
+      // エラー（パートナー/コート割り当て失敗）もリトライ対象
+      let data = null;
+      let bestData = null;
+      let bestScore = Infinity;
+      let lastError = null;
+      const MAX_RETRY = 200;
+      let retryCount = 0;
+      const startTime = performance.now();
+      for (let attempt = 0; attempt < MAX_RETRY; attempt++) {
+        retryCount = attempt + 1;
+        try {
+          data = generateSchedule(redPlayers, whitePlayers, courts, totalGames, currentMode);
+          lastError = null;
+          // スコア = 重複対戦数 * 1000 + ③男男vs女女数
+          // 重複対戦ゼロを最優先、次に③を最小化
+          const dupCount = data.duplicateWarnings ? data.duplicateWarnings.length : 0;
+          const type3Count = countType3(data);
+          const oppStats = calcOppStats(data);
+          // スコア = 重複対戦数 * 1000000 + ③男男vs女女数 * 10000 + 対戦相手最大回数 * 100 + 対戦相手分散
+          const score = dupCount * 1000000 + type3Count * 10000 + oppStats.maxOpp * 100 + Math.round(oppStats.variance);
+          if (score < bestScore) { bestScore = score; bestData = data; }
+          if (score === 0) break; // 完璧な解が見つかったら即終了
+        } catch(e) {
+          // エラーが発生した場合はリトライ（ランダム性があるため次回は成功する可能性がある）
+          lastError = e;
+          continue;
+        }
+      }
+      // 全試行でエラーの場合のみエラーを表示
+      if (!bestData && lastError) {
+        // エラーメッセージを日本語で分かりやすくする
+        let msg = lastError.message || String(lastError);
+        if (msg.includes('not iterable') || msg.includes('undefined') || msg.includes('null')) {
+          const mode = currentMode;
+          if (mode === 'auto') {
+            msg = '自動（混合）モードでスケジュールを生成できませんでした。\n\n考えられる原因：\n・紅組と白組の男女比率が大きく異なる場合、有効なコートパターンが見つからないことがあります\n・例：紅組 男4人・女3人、白組 男2人・女5人 のような組み合わせ\n\n解決策：\n① 男女の人数を均等に近づける（例：各組 男4人・女4人）\n② 対戦モードを「制限なし」に変更する\n③ コート数や試合数を変更する';
+          } else {
+            msg = 'スケジュールの生成に失敗しました。\n「同一ペア最大回数」を増やすか、対戦モードを変更してください。';
+          }
+        }
+        throw new Error(msg);
+      }
+      const elapsedMs = Math.round(performance.now() - startTime);
+      data = bestData;
+      data._retryCount = retryCount;
+      data._elapsedMs = elapsedMs;
+      currentScheduleData = data;
+      renderResults(data);
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('result-area').style.display = 'block';
+      document.getElementById('excel-btn').disabled = false;
+      // 重複警告の表示（50回試行しても残った場合のみ）
+      if (data.duplicateWarnings && data.duplicateWarnings.length > 0) {
+        // 試合数を変えると重複が解消できるか提案
+        const courts = parseInt(document.getElementById('courts').value);
+        const totalGames = parseInt(document.getElementById('totalGames').value);
+        const totalPlayers = data.RED.length + data.WHITE.length;
+        const playersPerGame = courts * 4;
+        const suggestions = [];
+        for (let t = 1; t <= 30; t++) {
+          if (t === totalGames) continue;
+          if ((t * playersPerGame) % totalPlayers !== 0) continue;
+          // 女性コートの組み合わせ数と比較
+          const redF = data.RED.filter(id => data.playerMap[id].gender === 'F').length;
+          const whtF = data.WHITE.filter(id => data.playerMap[id].gender === 'F').length;
+          const restPerSide = (totalPlayers - playersPerGame) / 2;
+          // 女性コートの組み合わせ数を計算
+          let bestRestF = 0;
+          for (let rm = 0; rm <= restPerSide; rm++) {
+            const rf = restPerSide - rm;
+            if (rf < 0 || rf > redF) continue;
+            const playF = redF - rf;
+            if (playF % 2 === 0 && playF > 0) { bestRestF = rf; break; }
+          }
+          const playF = redF - bestRestF;
+          const wPlayF = whtF - bestRestF;
+          const femCombR = comb(redF - bestRestF, 2);
+          const femCombW = comb(whtF - bestRestF, 2);
+          const femMatchCombinations = femCombR * femCombW;
+          const femCourtsPerGame = Math.floor(playF / 2); // 女性コート数
+          const femGamesNeeded = t * femCourtsPerGame;
+          if (femMatchCombinations >= femGamesNeeded) {
+            suggestions.push(t);
+          }
+          if (suggestions.length >= 3) break;
+        }
+        let suggestionHtml = '';
+        if (suggestions.length > 0) {
+          suggestionHtml = `<br>💡 <b>試合数を ${suggestions.join(' / ')} に変更すると重複が解消できる可能性があります</b>`;
+          suggestionHtml += suggestions.map(t => ` <button onclick="document.getElementById('totalGames').value=${t};generate()" style="background:#2E75B6;color:white;border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:0.8rem;margin-left:4px">${t}試合で再生成</button>`).join('');
+        }
+        document.getElementById('error-msg').innerHTML = `<div style="background:#fff8e1;border:1px solid #ffc107;border-radius:8px;padding:10px 14px;color:#856404;font-size:0.82rem;margin-top:10px;">
+          ⚠️ <b>同一対戦の重複が${data.duplicateWarnings.length}件あります</b>（人数の制約上、避けられない場合があります）<br>
+          ${data.duplicateWarnings.map(w => `・${w}`).join('<br>')}${suggestionHtml}
+        </div>`;
+      }
+    } catch(e) {
+      document.getElementById('loading').style.display = 'none';
+      // エラーメッセージを日本語に変換
+      let msg = e.message || String(e);
+      if (msg.includes('not iterable') || msg.includes('Symbol') || msg.includes('undefined') || msg.includes('null') || msg.includes('Cannot read')) {
+        if (currentMode === 'auto') {
+          msg = '自動（混合）モードでスケジュールを生成できませんでした。\n\n考えられる原因：\n・紅組と白組の男女比率が大きく異なる場合、有効なコートパターンが見つからないことがあります\n・例：紅組 男4人・女3人、白組 男2人・女5人 のような組み合わせ\n\n解決策：\n① 男女の人数を均等に近づける（例：各組 男4人・女4人）\n② 対戦モードを「制限なし」に変更する\n③ コート数や試合数を変更する';
+        } else {
+          msg = 'スケジュールの生成に失敗しました。\n「同一ペア最大回数」を増やすか、対戦モードを変更してください。';
+        }
+      }
+      document.getElementById('error-msg').innerHTML = `<div class="error-box">❌ ${msg.replace(/\n/g, '<br>')}</div>`;
+    }
+  }, 50);
+}
+
+// ============================================================
+// コアロジック
+// ============================================================
+function generateSchedule(redArr, whiteArr, courts, totalGames, mode) {
+  const RED   = redArr.map(p => p.id);
+  const WHITE = whiteArr.map(p => p.id);
+  const allIds = [...RED, ...WHITE];
+  const playerMap = {};
+  [...redArr, ...whiteArr].forEach(p => playerMap[p.id] = p);
+
+  const totalPlayers   = allIds.length;
+  const playersPerGame = courts * 4;
+  const restPerSide    = (totalPlayers - playersPerGame) / 2;
+  const gamesPerPlayer = (totalGames * playersPerGame) / totalPlayers;
+  const restPerPlayer  = totalGames - gamesPerPlayer;
+
+  // autoモードのミックス割合（0〜1）
+  const mixedRatio = mode === 'auto' ? (parseInt(document.getElementById('mixed-ratio').value) || 50) / 100 : 0;
+
+  // autoモード: コート単位でミックス/同性を決める
+  // 各試合のコートパターン(mixedCourts, maleCourts, femaleCourts)を事前に決定
+  // 目標ミックスコート数 = totalGames * courts * mixedRatio
+  const redMales   = mode === 'auto' ? RED.filter(id => playerMap[id].gender === 'M') : [];
+  const redFemales = mode === 'auto' ? RED.filter(id => playerMap[id].gender === 'F') : [];
+  const whtMales   = mode === 'auto' ? WHITE.filter(id => playerMap[id].gender === 'M') : [];
+  const whtFemales = mode === 'auto' ? WHITE.filter(id => playerMap[id].gender === 'F') : [];
+
+  // autoモード: 各試合のコートパターンを決定
+  // パターン: {mixedCourts, maleCourts, femaleCourts}
+  // 制約: mixedCourts + maleCourts + femaleCourts = courts
+  //       男出場 = mixedCourts + maleCourts*2 ≤ redMales.length
+  //       女出場 = mixedCourts + femaleCourts*2 ≤ redFemales.length
+  //       男休み + 女休み = restPerSide
+  const gamePatterns = [];
+  if (mode === 'auto') {
+    const targetMixedCourts = Math.round(totalGames * courts * mixedRatio);
+    let mixedCourtCount = 0;
+    // maleCourts/femaleCourtsを交互に変えるためのフラグ
+    let flipMaleFemale = false;
+
+    for (let g = 0; g < totalGames; g++) {
+      // 残り試合数と残り目標ミックスコート数から最適なmixedCourtsを決める
+      const remainingGames = totalGames - g;
+      const remainingTarget = targetMixedCourts - mixedCourtCount;
+      const idealMixedCourts = Math.round(remainingTarget / remainingGames);
+      const mc = Math.max(0, Math.min(courts, idealMixedCourts));
+      const remaining = courts - mc;
+      // maleCourtsとfemaleCourtsを交互に変える（均等な休み分散のため）
+      let maleCourts, femaleCourts;
+      if (remaining === 0) {
+        maleCourts = 0; femaleCourts = 0;
+      } else if (remaining % 2 === 0) {
+        maleCourts = remaining / 2; femaleCourts = remaining / 2;
+      } else {
+        // 奇数の場合は交互に
+        if (flipMaleFemale) {
+          maleCourts = Math.floor(remaining / 2); femaleCourts = Math.ceil(remaining / 2);
+        } else {
+          maleCourts = Math.ceil(remaining / 2); femaleCourts = Math.floor(remaining / 2);
+        }
+        flipMaleFemale = !flipMaleFemale;
+      }
+      // 男女の人数制約チェック（紅白両組の制約を同時に満たす）
+      const playM = mc + maleCourts * 2;
+      const playF = mc + femaleCourts * 2;
+      const minMales = Math.min(redMales.length, whtMales.length);
+      const minFemales = Math.min(redFemales.length, whtFemales.length);
+      if (playM > minMales || playF > minFemales) {
+        // 制約違反: maleCourts/femaleCourtsを調整（紅白両組の小さい方に合わせる）
+        const maxMaleCourts = Math.max(0, Math.floor((minMales - mc) / 2));
+        const maxFemaleCourts = Math.max(0, Math.floor((minFemales - mc) / 2));
+        maleCourts = Math.min(maleCourts, maxMaleCourts);
+        femaleCourts = Math.min(femaleCourts, maxFemaleCourts);
+      }
+      gamePatterns.push({ mixedCourts: mc, maleCourts, femaleCourts });
+      mixedCourtCount += mc;
+    }
+  }
+
+  // autoモード: コートパターンに基づいて休みスケジュールを生成
+  let redRest, whiteRest;
+  if (mode === 'auto') {
+    redRest   = generateRestScheduleAuto(RED,   totalGames, restPerSide, playerMap, gamePatterns, redMales,   redFemales);
+    whiteRest = generateRestScheduleAuto(WHITE, totalGames, restPerSide, playerMap, gamePatterns, whtMales, whtFemales);
+  } else {
+    redRest   = generateRestSchedule(RED,   totalGames, restPerSide, playerMap, mode);
+    whiteRest = generateRestSchedule(WHITE, totalGames, restPerSide, playerMap, mode);
+  }
+
+  let partnerCount  = initMatrix(allIds);
+  let opponentCount = initMatrix(allIds);
+  // ペア対戦履歴: 同じペア同士の対戦回数を追跡
+  const pairMatchHistory = new Map();
+  // ミックス出場回数を追跡（均等なミックス参加のため）
+  const mixedPlayCount = {};
+  for (const id of allIds) mixedPlayCount[id] = 0;
+
+  let allCourts = [];
+
+  for (let g = 0; g < totalGames; g++) {
+    const redPlaying   = RED.filter(id   => !redRest[g].includes(id));
+    const whitePlaying = WHITE.filter(id => !whiteRest[g].includes(id));
+
+    let gameCourts;
+    if (mode === 'auto') {
+      // autoモード: コートパターンに基づいてペアを生成
+      const { mixedCourts, maleCourts, femaleCourts } = gamePatterns[g];
+      gameCourts = assignCourtsAuto(
+        redPlaying, whitePlaying, partnerCount, opponentCount, playerMap,
+        mixedCourts, maleCourts, femaleCourts, pairMatchHistory, mixedPlayCount
+      );
+    } else {
+      const pairs = assignPartners(redPlaying, partnerCount, playerMap, mode);
+      const wPairs = assignPartners(whitePlaying, partnerCount, playerMap, mode);
+      if (!pairs || !wPairs) {
+        throw new Error(`試合${g+1}でパートナー割り当てに失敗しました。\n「同一ペア最大回数」を増やすか、対戦モードを変更してください。`);
+      }
+      gameCourts = assignCourts(pairs, wPairs, opponentCount, playerMap, mode, pairMatchHistory);
+      if (!gameCourts) {
+        throw new Error(`試合${g+1}でコート割り当てに失敗しました。\n「同一ペア最大回数」を増やすか、対戦モードを変更してください。`);
+      }
+    }
+
+    if (!gameCourts) {
+      throw new Error(`試合${g+1}でコート割り当てに失敗しました。\n「同一ペア最大回数」を増やすか、対戦モードを変更してください。`);
+    }
+
+    for (const [rp, wp] of gameCourts) {
+      partnerCount[rp[0]][rp[1]]++;
+      partnerCount[rp[1]][rp[0]]++;
+      partnerCount[wp[0]][wp[1]]++;
+      partnerCount[wp[1]][wp[0]]++;
+      for (const r of rp) for (const w of wp) {
+        opponentCount[r][w]++;
+        opponentCount[w][r]++;
+      }
+      // ペア対戦履歴を更新
+      const pairKey = [...rp].sort().join(',') + '|' + [...wp].sort().join(',');
+      pairMatchHistory.set(pairKey, (pairMatchHistory.get(pairKey) || 0) + 1);
+    }
+    allCourts.push(gameCourts);
+  }
+
+  // 完全重複対戦の検出と警告
+  const duplicateWarnings = [];
+  const matchHistory = new Map();
+  for (let g = 0; g < totalGames; g++) {
+    for (const [rp, wp] of allCourts[g]) {
+      const key = [...rp].sort().join(',') + '|' + [...wp].sort().join(',');
+      const keyRev = [...wp].sort().join(',') + '|' + [...rp].sort().join(',');
+      const canonical = [key, keyRev].sort()[0];
+      if (matchHistory.has(canonical)) {
+        duplicateWarnings.push(`試合${g+1}: ${rp.map(id=>playerMap[id].name).join('+')} vs ${wp.map(id=>playerMap[id].name).join('+')} (試合${matchHistory.get(canonical)+1}と重複)`);
+      } else {
+        matchHistory.set(canonical, g);
+      }
+    }
+  }
+
+  return {
+    RED, WHITE, playerMap, courts, totalGames, gamesPerPlayer, restPerPlayer,
+    redRest, whiteRest, allCourts, partnerCount, opponentCount, mode, duplicateWarnings
+  };
+}
+
+function initMatrix(ids) {
+  const m = {};
+  for (const a of ids) { m[a] = {}; for (const b of ids) m[a][b] = 0; }
+  return m;
+}
+
+function generateRestSchedule(players, totalGames, restPerGame, playerMap, mode) {
+  const schedule = Array.from({length: totalGames}, () => []);
+  const restCounts = {};
+  const lastRest = {};
+  for (const p of players) { restCounts[p] = 0; lastRest[p] = -999; }
+
+  const needsGenderBalance = (mode === 'same' || mode === 'mixed' || mode === 'auto') && playerMap;
+  const males   = needsGenderBalance ? players.filter(id => playerMap[id].gender === 'M') : [];
+  const females = needsGenderBalance ? players.filter(id => playerMap[id].gender === 'F') : [];
+
+  for (let g = 0; g < totalGames; g++) {
+    const sortByRest = (a, b) =>
+      restCounts[a] !== restCounts[b] ? restCounts[a] - restCounts[b] : lastRest[a] - lastRest[b];
+
+    let resting;
+
+    if (needsGenderBalance) {
+      // 性別制約を満たす(restM, restF)の組み合わせを列挙
+      const genderCombos = [];
+      for (let rm = 0; rm <= Math.min(males.length, restPerGame); rm++) {
+        const rf = restPerGame - rm;
+        if (rf < 0 || rf > females.length) continue;
+        const playM = males.length - rm, playF = females.length - rf;
+        if (mode === 'mixed') {
+          if (playM === playF) genderCombos.push([rm, rf]);
+        } else {
+          if (playM % 2 === 0 && playF % 2 === 0) genderCombos.push([rm, rf]);
+        }
+      }
+
+      // 性別制約ありの候補の中から分散最小を選ぶ
+      // 「制約なし」は廃止（出場男女数が奇数になるとペア生成が失敗するため）
+      let bestResting = null;
+      let bestScore = Infinity;
+
+      for (const [rm, rf] of genderCombos) {
+        const cand = [...[...males].sort(sortByRest).slice(0, rm), ...[...females].sort(sortByRest).slice(0, rf)];
+        const nc = {...restCounts};
+        for (const p of cand) nc[p]++;
+        const vals = Object.values(nc);
+        const avg = vals.reduce((s, v) => s + v, 0) / vals.length;
+        const variance = vals.reduce((s, v) => s + (v - avg) ** 2, 0);
+        if (variance < bestScore) { bestScore = variance; bestResting = cand; }
+      }
+
+      // 性別制約ありの候補がない場合のみ「制約なし」にフォールバック
+      if (!bestResting) {
+        bestResting = [...players].sort(sortByRest).slice(0, restPerGame);
+      }
+
+      resting = bestResting;
+    } else {
+      resting = [...players].sort(sortByRest).slice(0, restPerGame);
+    }
+
+    schedule[g] = resting;
+    for (const p of resting) { restCounts[p]++; lastRest[p] = g; }
+  }
+
+  return schedule;
+}
+
+// ペア有効性チェック（性別モード）
+function isPairValid(a, b, playerMap, mode) {
+  if (mode === 'any') return true;
+  const ga = playerMap[a].gender, gb = playerMap[b].gender;
+  if (mode === 'same') return ga === gb;       // 同性ペア
+  if (mode === 'mixed') return ga !== gb;      // 異性ペア（ミックス）
+  if (mode === 'auto') return true;            // autoはペア制約なし（対戦時に制御）
+  return true;
+}
+
+// ペアの性別タイプを返す: 'MM'=男男, 'FF'=女女, 'MF'=ミックス
+function pairType(pair, playerMap) {
+  const genders = pair.map(id => playerMap[id].gender).sort().join('');
+  return genders; // 'MM', 'FF', 'FM'
+}
+
+// 対戦の優先度スコアを返す（低いほど優先）
+// ①同タイプ同士（MM-MM, FF-FF, FM-FM）: 0
+// ②ミックス vs 同性（FM-MM, FM-FF）: 1
+// ③男男 vs 女女（MM-FF）: 2（なるべく排除）
+function matchPriorityScore(rp, wp, playerMap) {
+  const rt = pairType(rp, playerMap);
+  const wt = pairType(wp, playerMap);
+  if (rt === wt) return 0; // ①同タイプ同士
+  if (rt === 'FM' || wt === 'FM') return 1; // ②ミックス絡み
+  return 2; // ③男男 vs 女女
+}
+
+// コート対戦有効性チェック
+function isMatchValid(rp, wp, playerMap, mode) {
+  if (mode === 'any') return true; // 制限なしは全て許可（優先度でスコアリング）
+  const rGenders = rp.map(id => playerMap[id].gender).sort().join('');
+  const wGenders = wp.map(id => playerMap[id].gender).sort().join('');
+  if (mode === 'same') {
+    // 同性対戦: 両ペアが同性（かつ同じ性別同士）
+    const rIsSame = rGenders[0] === rGenders[1];
+    const wIsSame = wGenders[0] === wGenders[1];
+    return rIsSame && wIsSame && rGenders === wGenders;
+  }
+  if (mode === 'mixed') {
+    // ミックス対戦: 両ペアが男女混合
+    return rGenders === 'FM' && wGenders === 'FM';
+  }
+  if (mode === 'auto') {
+    // 同じ性別タイプ同士のみ許可（男男vs男男、女女vs女女、男女vs男女）
+    return rGenders === wGenders;
+  }
+  return true;
+}
+
+function assignPartners(players, partnerCounts, playerMap, mode) {
+  const baseMax = parseInt(document.getElementById('maxPartner').value) || 2;
+  const maxPartner = (mode === 'mixed') ? baseMax + 1 : baseMax;
+
+  // 全候補ペアを列挙してスコアリング → 最良解を複数回試行してランダム性を加える
+  const TRIALS = 20; // 試行回数
+  let bestPairs = null, bestScore = Infinity;
+
+  for (let trial = 0; trial < TRIALS; trial++) {
+    let trialBest = null, trialScore = Infinity;
+
+    function bt(remaining, pairs) {
+      if (remaining.length === 0) {
+        const counts = pairs.map(([a, b]) => partnerCounts[a][b]);
+        const maxP = Math.max(...counts);
+        // パートナー多様性スコア: 各ペアの回数の二乗和（小さいほど多様）
+        const pairDiversity = pairs.reduce((s, [a, b]) => s + partnerCounts[a][b] ** 2, 0);
+        const totalScore = counts.reduce((s, c) => s + c, 0);
+        const avg = totalScore / counts.length;
+        const variance = counts.reduce((s, c) => s + (c - avg) ** 2, 0);
+        // pairDiversityを最優先（maxPの次）で多様なペアを促進
+        const cs = maxP * 100000 + pairDiversity * 1000 + Math.round(variance * 100) + totalScore;
+        if (cs < trialScore) { trialScore = cs; trialBest = pairs.map(p => [...p]); }
+        return;
+      }
+      const a = remaining[0];
+      // 未組み合わせのパートナーを優先しつつ、同回数はランダムにシャッフル
+      const rest = [...remaining.slice(1)];
+      // 同じパートナー回数のグループ内でランダムシャッフル
+      rest.sort((x, y) => {
+        const diff = partnerCounts[a][x] - partnerCounts[a][y];
+        if (diff !== 0) return diff;
+        return Math.random() - 0.5; // 同回数はランダム
+      });
+      for (let i = 0; i < rest.length; i++) {
+        const b = rest[i];
+        if (partnerCounts[a][b] >= maxPartner) continue;
+        if (!isPairValid(a, b, playerMap, mode)) continue;
+        bt(rest.filter((_, idx) => idx !== i), [...pairs, [a, b]]);
+      }
+    }
+
+    bt(players, []);
+
+    if (trialBest && trialScore < bestScore) {
+      bestScore = trialScore;
+      bestPairs = trialBest;
+    }
+  }
+
+  // 仕様書 §5.1: フォールバックは廃止
+  // sameモードで失敗した場合にanyモードにフォールバックすると
+  // ミックスペアが生成され、不正な対戦（ミックス vs 男男）が発生するため
+  // フォールバックせずnullを返す（呼び出し元でエラー処理）
+  return bestPairs;
+}
+
+function permutations(arr) {
+  if (arr.length <= 1) return [arr];
+  const result = [];
+  for (let i = 0; i < arr.length; i++) {
+    const rest = arr.filter((_, idx) => idx !== i);
+    for (const perm of permutations(rest)) result.push([arr[i], ...perm]);
+  }
+  return result;
+}
+
+function assignCourts(redPairs, whitePairs, opponentCount, playerMap, mode, pairMatchHistory) {
+  const n = redPairs.length;
+  const perms = permutations(Array.from({length: n}, (_, i) => i));
+  let bestPerm = null, bestScore = Infinity;
+
+  for (const perm of perms) {
+    // 対戦モード制約チェック
+    let modeOk = true;
+    for (let i = 0; i < n; i++) {
+      if (!isMatchValid(redPairs[i], whitePairs[perm[i]], playerMap, mode)) {
+        modeOk = false; break;
+      }
+    }
+    if (!modeOk) continue;
+
+    let score = 0, maxOpp = 0;
+    for (let i = 0; i < n; i++) {
+      const rp = redPairs[i], wp = whitePairs[perm[i]];
+      // 同じペア同士の対戦履歴チェック（大きなペナルティ）
+      const pairKey = [...rp].sort().join(',') + '|' + [...wp].sort().join(',');
+      const pairKeyRev = [...wp].sort().join(',') + '|' + [...rp].sort().join(',');
+      const pairMatchCount = (pairMatchHistory.get(pairKey) || 0) + (pairMatchHistory.get(pairKeyRev) || 0);
+      score += pairMatchCount * 500000;
+      // 4人全員が既に対戦済み（完全重複）は追加ペナルティ
+      const isExactDuplicate = rp.every(r => wp.every(w => opponentCount[r][w] > 0));
+      if (isExactDuplicate) score += 1000000;
+      // 制限なしモード: 対戦タイプの優先度ペナルティ（男男vs女女を排除）
+      if (mode === 'any') {
+        score += matchPriorityScore(rp, wp, playerMap) * 200000;
+      }
+      for (const r of rp) for (const w of wp) {
+        score += opponentCount[r][w];
+        maxOpp = Math.max(maxOpp, opponentCount[r][w]);
+      }
+    }
+    const cs = maxOpp * 10000 + score;
+    if (cs < bestScore) { bestScore = cs; bestPerm = perm; }
+  }
+
+  // 制約を満たす組み合わせがない場合 → フォールバックなし（性別制約を維持）
+  // フォールバックすると「男男ペア vs 女女ペア」などの不正な対戦が発生するため
+  // 呼び出し元の200回リトライで解を探す
+
+  if (!bestPerm) return null;
+  return bestPerm.map((wi, ri) => [redPairs[ri], whitePairs[wi]]);
+}
+
+// ============================================================
+// 描画
+// ============================================================
+function renderResults(d) {
+  renderStats(d);
+  renderScheduleTable(d);
+  renderPlayerTable(d);
+  renderPartnerTable(d);
+  renderOpponentTable(d);
+}
+
+function genderBadge(id, playerMap) {
+  const g = playerMap[id].gender;
+  return `<span class="${g==='M'?'g-m':'g-f'}">${g==='M'?'♂':'♀'}</span>`;
+}
+
+function playerLabel(id, playerMap) {
+  const p = playerMap[id];
+  const team = d => d.RED.includes(id) ? '紅' : '白';
+  return p.name;
+}
+
+function renderStats(d) {
+  let maxP = 0, minOpp = 999, maxOpp = 0;
+  for (const r of d.RED) for (const q of d.RED) if (q !== r) maxP = Math.max(maxP, d.partnerCount[r][q]);
+  for (const r of d.RED) for (const w of d.WHITE) {
+    maxOpp = Math.max(maxOpp, d.opponentCount[r][w]);
+    minOpp = Math.min(minOpp, d.opponentCount[r][w]);
+  }
+  const modeNames = { any:'制限なし', same:'同性対戦', mixed:'ミックス対戦', auto:'自動（混合）' };
+  document.getElementById('stats-bar').innerHTML = `
+    <div class="stat-card"><div class="val">${d.RED.length + d.WHITE.length}</div><div class="lbl">総人数</div></div>
+    <div class="stat-card"><div class="val">${d.courts}</div><div class="lbl">コート数</div></div>
+    <div class="stat-card"><div class="val">${d.totalGames}</div><div class="lbl">試合数</div></div>
+    <div class="stat-card"><div class="val">${d.gamesPerPlayer}</div><div class="lbl">1人出場数</div></div>
+    <div class="stat-card"><div class="val">${d.restPerPlayer}</div><div class="lbl">1人休み数</div></div>
+    <div class="stat-card"><div class="val">最大${maxP}回</div><div class="lbl">パートナー</div></div>
+    <div class="stat-card"><div class="val">${minOpp}〜${maxOpp}回</div><div class="lbl">対戦相手</div></div>
+    <div class="stat-card"><div class="val" style="font-size:0.9rem">${modeNames[d.mode]}</div><div class="lbl">対戦モード</div></div>
+    ${d._retryCount !== undefined ? `<div class="stat-card"><div class="val" style="font-size:0.9rem">${d._retryCount}回 / ${d._elapsedMs}ms</div><div class="lbl">リトライ / 生成時間</div></div>` : ''}
+    ${d.mode === 'any' || d.mode === 'auto' || d.mode === 'same' || d.mode === 'mixed' ? (() => { const t3 = countType3(d); const t1 = d.allCourts.flat().filter(([rp,wp]) => { const rg=rp.map(id=>d.playerMap[id].gender).sort().join(''); const wg=wp.map(id=>d.playerMap[id].gender).sort().join(''); return rg===wg; }).length; const t2 = d.allCourts.flat().length - t1 - t3; return `<div class="stat-card"><div class="val" style="font-size:0.75rem;color:${t3===0?'#28a745':'#fd7e14'}">①${t1} ②${t2} ③${t3}</div><div class="lbl">対戦タイプ</div></div>`; })() : ''}
+  `;
+}
+
+function renderScheduleTable(d) {
+  const { courts, allCourts, redRest, whiteRest, totalGames, playerMap } = d;
+  const restPerSide = redRest[0].length;
+
+  let html = '<thead><tr><th>試合</th><th>コート</th>';
+  html += '<th>紅①</th><th>紅②</th><th>vs</th><th>白①</th><th>白②</th>';
+  html += '<th class="sep-cell"></th>';
+  for (let i = 0; i < restPerSide; i++) html += `<th>紅休み${i+1}</th>`;
+  html += '<th class="sep-cell"></th>';
+  for (let i = 0; i < restPerSide; i++) html += `<th>白休み${i+1}</th>`;
+  html += '</tr></thead><tbody>';
+
+  for (let g = 0; g < totalGames; g++) {
+    const gameCourts = allCourts[g];
+    const rr = redRest[g], wr = whiteRest[g];
+    const isLast = (g === totalGames - 1);
+
+    for (let c = 0; c < courts; c++) {
+      const [rp, wp] = gameCourts[c];
+      const isFirst = (c === 0);
+      const rowClass = (c === courts - 1 && !isLast) ? ' class="game-separator"' : '';
+
+      html += `<tr${rowClass}>`;
+      if (isFirst) html += `<td class="game-cell" rowspan="${courts}">試合<br>${g+1}</td>`;
+      html += `<td class="court-cell">コート${c+1}</td>`;
+
+      const pName = id => {
+        const p = playerMap[id];
+        const g = p.gender === 'M' ? '<span class="g-m">♂</span>' : '<span class="g-f">♀</span>';
+        return `${p.name}${g}`;
+      };
+
+      html += `<td class="red-cell">${pName(rp[0])}</td><td class="red-cell">${pName(rp[1])}</td>`;
+      html += `<td class="vs-cell">vs</td>`;
+      html += `<td class="white-cell">${pName(wp[0])}</td><td class="white-cell">${pName(wp[1])}</td>`;
+      html += `<td class="sep-cell"></td>`;
+
+      if (isFirst) {
+        for (const id of rr) html += `<td class="rest-red" rowspan="${courts}">${playerMap[id].name}</td>`;
+        html += `<td class="sep-cell" rowspan="${courts}"></td>`;
+        for (const id of wr) html += `<td class="rest-white" rowspan="${courts}">${playerMap[id].name}</td>`;
+      }
+      html += '</tr>';
+    }
+  }
+  html += '</tbody>';
+  document.getElementById('schedule-table').innerHTML = html;
+}
+
+function renderPlayerTable(d) {
+  const { RED, WHITE, totalGames, redRest, whiteRest, playerMap } = d;
+  const allIds = [...RED, ...WHITE];
+
+  let html = '<thead><tr><th>名前</th><th>性別</th><th>組</th><th>出場</th><th>休み</th>';
+  html += Array.from({length: totalGames}, (_, i) => `<th>${i+1}</th>`).join('');
+  html += '</tr></thead><tbody>';
+
+  for (const id of allIds) {
+    const p = playerMap[id];
+    const isRed = RED.includes(id);
+    const restGames = [];
+    for (let g = 0; g < totalGames; g++) {
+      const rests = isRed ? redRest[g] : whiteRest[g];
+      if (rests.includes(id)) restGames.push(g + 1);
+    }
+    const playGames = Array.from({length: totalGames}, (_, i) => i + 1).filter(g => !restGames.includes(g));
+
+    html += `<tr>
+      <td style="font-weight:bold;color:${isRed?'#CC0000':'#0000CC'}">${p.name}</td>
+      <td>${p.gender==='M'?'<span class="g-m">♂ 男</span>':'<span class="g-f">♀ 女</span>'}</td>
+      <td><span style="background:${isRed?'#FFCCCC':'#DDDDFF'};padding:2px 7px;border-radius:4px;font-size:0.75rem;color:${isRed?'#CC0000':'#0000CC'}">${isRed?'紅組':'白組'}</span></td>
+      <td>${playGames.length}試合</td>
+      <td style="color:#888">${restGames.join('・')}</td>`;
+    for (let g = 0; g < totalGames; g++) {
+      const isRest = restGames.includes(g + 1);
+      html += `<td><span class="game-dot ${isRest?'dot-rest':'dot-play'}">${g+1}</span></td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</tbody>';
+  document.getElementById('player-table').innerHTML = html;
+}
+
+function renderPartnerTable(d) {
+  const { RED, WHITE, partnerCount, playerMap } = d;
+  let out = '';
+
+  for (const [label, group] of [['紅組', RED], ['白組', WHITE]]) {
+    const color = label === '紅組' ? '#CC0000' : '#0000CC';
+    out += `<p style="font-weight:bold;color:${color};margin:8px 0 4px">${label}</p>`;
+    out += `<table class="player-table"><thead><tr><th>選手</th>`;
+    for (const id of group) out += `<th style="color:${color}">${playerMap[id].name}</th>`;
+    out += '</tr></thead><tbody>';
+    for (const a of group) {
+      out += `<tr><td style="font-weight:bold;color:${color}">${playerMap[a].name}</td>`;
+      for (const b of group) {
+        if (a === b) { out += '<td style="background:#eee">-</td>'; continue; }
+        const cnt = partnerCount[a][b];
+        const bg = cnt === 0 ? '#f8f8f8' : cnt === 1 ? '#fff3cd' : '#ffd6d6';
+        out += `<td style="background:${bg};font-weight:${cnt>0?'bold':'normal'}">${cnt}</td>`;
+      }
+      out += '</tr>';
+    }
+    out += '</tbody></table><br>';
+  }
+  document.getElementById('partner-table').innerHTML = out;
+}
+
+function renderOpponentTable(d) {
+  const { RED, WHITE, opponentCount, playerMap } = d;
+  let maxOpp = 0;
+  for (const r of RED) for (const w of WHITE) maxOpp = Math.max(maxOpp, opponentCount[r][w]);
+
+  let html = '<thead><tr><th>紅 \\ 白</th>';
+  for (const w of WHITE) html += `<th style="color:#0000CC">${playerMap[w].name}</th>`;
+  html += '</tr></thead><tbody>';
+  for (const r of RED) {
+    html += `<tr><td style="font-weight:bold;color:#CC0000">${playerMap[r].name}</td>`;
+    for (const w of WHITE) {
+      const cnt = opponentCount[r][w];
+      const ratio = maxOpp > 0 ? cnt / maxOpp : 0;
+      const g = Math.round(255 - ratio * 80);
+      const bg = cnt === 0 ? '#f8f8f8' : `rgb(255,${g},${g})`;
+      html += `<td style="background:${bg};font-weight:${cnt>0?'bold':'normal'}">${cnt}</td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</tbody>';
+  document.getElementById('opponent-table').innerHTML = html;
+}
+
+// ============================================================
+// スコア入力・集計
+// ============================================================
+const scoreData = {}; // { 'g_c': { red: null, white: null } }
+
+function renderScoreTab(d) {
+  const { allCourts, totalGames, courts, playerMap, RED, WHITE } = d;
+  const redName = document.getElementById('red-team-name').value || '紅組';
+  const whiteName = document.getElementById('white-team-name').value || '白組';
+
+  let html = `<div style="margin-bottom:12px;font-size:0.85rem;color:#555">
+    各試合のスコアを入力してください。勝敗が自動集計されます。
+  </div>`;
+
+  // スコア入力テーブル
+  html += `<table class="schedule-table" style="margin-bottom:20px">
+    <thead><tr>
+      <th>試合</th><th>コート</th>
+      <th style="color:#FFCCCC">${redName}ペア</th>
+      <th>スコア</th>
+      <th style="color:#DDDDFF">${whiteName}ペア</th>
+      <th>スコア</th>
+      <th>結果</th>
+    </tr></thead><tbody>`;
+
+  for (let g = 0; g < totalGames; g++) {
+    for (let c = 0; c < courts; c++) {
+      const [rp, wp] = allCourts[g][c];
+      const key = `${g}_${c}`;
+      if (!scoreData[key]) scoreData[key] = { red: null, white: null };
+      const rs = scoreData[key].red, ws = scoreData[key].white;
+      const result = rs !== null && ws !== null
+        ? (rs > ws ? `<span style="color:#CC0000;font-weight:bold">${redName}勝</span>`
+          : rs < ws ? `<span style="color:#0000CC;font-weight:bold">${whiteName}勝</span>`
+          : '<span style="color:#888">引き分け</span>')
+        : '-';
+      const isFirst = c === 0;
+      const rowClass = (c === courts - 1 && g < totalGames - 1) ? ' class="game-separator"' : '';
+      html += `<tr${rowClass}>`;
+      if (isFirst) html += `<td class="game-cell" rowspan="${courts}">試合<br>${g+1}</td>`;
+      html += `<td class="court-cell">コート${c+1}</td>`;
+      html += `<td class="red-cell" style="font-size:0.8rem">${rp.map(id=>playerMap[id].name).join(' + ')}</td>`;
+      html += `<td><input type="number" min="0" max="99" value="${rs !== null ? rs : ''}"
+        oninput="updateScore(${g},${c},'red',this.value)"
+        style="width:55px;padding:4px;border:1px solid #ddd;border-radius:4px;text-align:center;font-size:0.9rem"></td>`;
+      html += `<td class="white-cell" style="font-size:0.8rem">${wp.map(id=>playerMap[id].name).join(' + ')}</td>`;
+      html += `<td><input type="number" min="0" max="99" value="${ws !== null ? ws : ''}"
+        oninput="updateScore(${g},${c},'white',this.value)"
+        style="width:55px;padding:4px;border:1px solid #ddd;border-radius:4px;text-align:center;font-size:0.9rem"></td>`;
+      html += `<td id="result_${g}_${c}">${result}</td>`;
+      html += '</tr>';
+    }
+  }
+  html += '</tbody></table>';
+
+  // チーム集計
+  html += renderScoreSummary(d);
+
+  document.getElementById('score-area').innerHTML = html;
+}
+
+function updateScore(g, c, team, val) {
+  const key = `${g}_${c}`;
+  if (!scoreData[key]) scoreData[key] = { red: null, white: null };
+  scoreData[key][team] = val === '' ? null : parseInt(val);
+
+  // 結果セルを更新
+  const d = currentScheduleData;
+  const redName = document.getElementById('red-team-name').value || '紅組';
+  const whiteName = document.getElementById('white-team-name').value || '白組';
+  const rs = scoreData[key].red, ws = scoreData[key].white;
+  const result = rs !== null && ws !== null
+    ? (rs > ws ? `<span style="color:#CC0000;font-weight:bold">${redName}勝</span>`
+      : rs < ws ? `<span style="color:#0000CC;font-weight:bold">${whiteName}勝</span>`
+      : '<span style="color:#888">引き分け</span>')
+    : '-';
+  const cell = document.getElementById(`result_${g}_${c}`);
+  if (cell) cell.innerHTML = result;
+
+  // 集計を更新
+  const summaryEl = document.getElementById('score-summary');
+  if (summaryEl) summaryEl.innerHTML = renderScoreSummary(d);
+}
+
+function renderScoreSummary(d) {
+  const { totalGames, courts } = d;
+  const redName = document.getElementById('red-team-name').value || '紅組';
+  const whiteName = document.getElementById('white-team-name').value || '白組';
+
+  let redWin = 0, whiteWin = 0, draw = 0, played = 0;
+  for (let g = 0; g < totalGames; g++) {
+    for (let c = 0; c < courts; c++) {
+      const key = `${g}_${c}`;
+      const sd = scoreData[key];
+      if (!sd || sd.red === null || sd.white === null) continue;
+      played++;
+      if (sd.red > sd.white) redWin++;
+      else if (sd.red < sd.white) whiteWin++;
+      else draw++;
+    }
+  }
+  const total = totalGames * courts;
+
+  return `<div id="score-summary">
+    <div style="font-weight:bold;font-size:0.9rem;margin-bottom:8px">📊 チーム集計（${played}/${total}試合入力済み）</div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <div style="background:#FFCCCC;border-radius:8px;padding:12px 20px;text-align:center;min-width:100px">
+        <div style="font-size:1.8rem;font-weight:bold;color:#CC0000">${redWin}</div>
+        <div style="font-size:0.8rem;color:#880000">${redName} 勝利</div>
+      </div>
+      <div style="background:#f0f4f8;border-radius:8px;padding:12px 20px;text-align:center;min-width:100px">
+        <div style="font-size:1.8rem;font-weight:bold;color:#888">${draw}</div>
+        <div style="font-size:0.8rem;color:#666">引き分け</div>
+      </div>
+      <div style="background:#DDDDFF;border-radius:8px;padding:12px 20px;text-align:center;min-width:100px">
+        <div style="font-size:1.8rem;font-weight:bold;color:#0000CC">${whiteWin}</div>
+        <div style="font-size:0.8rem;color:#000088">${whiteName} 勝利</div>
+      </div>
+    </div>
+    ${played > 0 ? `<div style="margin-top:10px;font-size:0.85rem;color:#555">
+      勝率: ${redName} ${(redWin/played*100).toFixed(0)}% / ${whiteName} ${(whiteWin/played*100).toFixed(0)}%
+    </div>` : ''}
+  </div>`;
+}
+
+// ============================================================
+// 検証タブ
+// ============================================================
+function renderVerifyTab(d) {
+  const { RED, WHITE, playerMap, totalGames, redRest, whiteRest, allCourts, partnerCount, opponentCount } = d;
+  const allIds = [...RED, ...WHITE];
+  const maxPartnerAllowed = parseInt(document.getElementById('maxPartner').value) || 2;
+
+  const check = (ok, label, detail) => {
+    const icon = ok ? '✅' : '❌';
+    const color = ok ? '#28a745' : '#dc3545';
+    return `<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-radius:8px;background:${ok?'#f0fff4':'#fff3f3'};margin-bottom:8px;border:1px solid ${ok?'#b7ebc8':'#ffcccc'}">
+      <span style="font-size:1.2rem;flex-shrink:0">${icon}</span>
+      <div>
+        <div style="font-weight:bold;color:${color};font-size:0.9rem">${label}</div>
+        ${detail ? `<div style="font-size:0.8rem;color:#555;margin-top:3px">${detail}</div>` : ''}
+      </div>
+    </div>`;
+  };
+
+  let html = '<div style="font-size:0.85rem">';
+
+  // 1. 出場回数チェック
+  const playCounts = {};
+  const restCounts = {};
+  for (const id of allIds) { playCounts[id] = 0; restCounts[id] = 0; }
+  for (let g = 0; g < totalGames; g++) {
+    for (const [rp, wp] of allCourts[g]) {
+      for (const id of rp) playCounts[id]++;
+      for (const id of wp) playCounts[id]++;
+    }
+    for (const id of redRest[g]) restCounts[id]++;
+    for (const id of whiteRest[g]) restCounts[id]++;
+  }
+  const expectedPlay = d.gamesPerPlayer;
+  const expectedRest = d.restPerPlayer;
+  const playOk = allIds.every(id => playCounts[id] === expectedPlay && restCounts[id] === expectedRest);
+  const playDetail = playOk
+    ? `全${allIds.length}人が${expectedPlay}試合出場・${expectedRest}試合休み`
+    : allIds.filter(id => playCounts[id] !== expectedPlay).map(id => `${playerMap[id].name}: 出場${playCounts[id]}回`).join('、');
+  html += check(playOk, '出場回数均等', playDetail);
+
+  // 2. パートナー最大回数チェック
+  let maxPartnerActual = 0;
+  const partnerViolations = [];
+  for (const a of allIds) {
+    for (const b of allIds) {
+      if (b <= a) continue;
+      const cnt = partnerCount[a][b];
+      if (cnt > maxPartnerActual) maxPartnerActual = cnt;
+      if (cnt > maxPartnerAllowed) partnerViolations.push(`${playerMap[a].name}+${playerMap[b].name}: ${cnt}回`);
+    }
+  }
+  const partnerOk = partnerViolations.length === 0;
+  html += check(partnerOk, `パートナー最大${maxPartnerAllowed}回制限`,
+    partnerOk ? `最大${maxPartnerActual}回（制限内）` : `違反: ${partnerViolations.join('、')}`);
+
+  // 3. 重複対戦チェック
+  const matchHist = new Map();
+  const dupList = [];
+  for (let g = 0; g < totalGames; g++) {
+    for (const [rp, wp] of allCourts[g]) {
+      const k1 = [...rp].sort().join(',') + '|' + [...wp].sort().join(',');
+      const k2 = [...wp].sort().join(',') + '|' + [...rp].sort().join(',');
+      const canonical = [k1, k2].sort()[0];
+      if (matchHist.has(canonical)) {
+        dupList.push(`試合${g+1}: ${rp.map(id=>playerMap[id].name).join('+')} vs ${wp.map(id=>playerMap[id].name).join('+')} (試合${matchHist.get(canonical)}と重複)`);
+      } else matchHist.set(canonical, g + 1);
+    }
+  }
+  html += check(dupList.length === 0, '重複対戦なし',
+    dupList.length === 0 ? '全試合で異なる対戦組み合わせ' : dupList.join('<br>'));
+
+  // 4. 連続休みチェック
+  const restSched = {};
+  for (const id of allIds) restSched[id] = [];
+  for (let g = 0; g < totalGames; g++) {
+    for (const id of redRest[g]) restSched[id].push(g + 1);
+    for (const id of whiteRest[g]) restSched[id].push(g + 1);
+  }
+  let maxConsecutive = 0;
+  const consecutiveList = [];
+  for (const id of allIds) {
+    const r = restSched[id];
+    let cons = 1;
+    for (let i = 1; i < r.length; i++) {
+      if (r[i] === r[i-1] + 1) { cons++; if (cons > maxConsecutive) maxConsecutive = cons; }
+      else cons = 1;
+    }
+    if (r.some((v, i) => i > 0 && v === r[i-1] + 1)) {
+      consecutiveList.push(`${playerMap[id].name}: [${r.join(',')}]`);
+    }
+  }
+  const consOk = consecutiveList.length === 0;
+  html += check(consOk, '連続休みなし',
+    consOk ? `最大連続休み: ${maxConsecutive}試合` : `連続あり: ${consecutiveList.join('、')}`);
+
+  // 5. 対戦相手の偏りチェック
+  let minOpp = 999, maxOpp = 0;
+  for (const r of RED) for (const w of WHITE) {
+    minOpp = Math.min(minOpp, opponentCount[r][w]);
+    maxOpp = Math.max(maxOpp, opponentCount[r][w]);
+  }
+  const oppOk = maxOpp <= 3;
+  html += check(oppOk, `対戦相手の偏り（目標: 最大3回）`,
+    `実際: ${minOpp}〜${maxOpp}回 ${oppOk ? '（良好）' : '（偏りあり）'}`);
+
+  // 6. 対戦タイプチェック（③男男vs女女）
+  const t3 = countType3(d);
+  const t1 = allCourts.flat().filter(([rp,wp]) => {
+    const rg = rp.map(id=>playerMap[id].gender).sort().join('');
+    const wg = wp.map(id=>playerMap[id].gender).sort().join('');
+    return rg === wg;
+  }).length;
+  const t2 = allCourts.flat().length - t1 - t3;
+  html += check(t3 === 0, '③男男vs女女なし',
+    `①同タイプ: ${t1}コート ②ミックス絡み: ${t2}コート ③男男vs女女: ${t3}コート`);
+
+  // 7. 各試合の人数チェック
+  let gameOk = true;
+  for (let g = 0; g < totalGames; g++) {
+    const redPlaying = new Set(allCourts[g].flatMap(([rp]) => rp));
+    const whitePlaying = new Set(allCourts[g].flatMap(([,wp]) => wp));
+    if (redPlaying.size + redRest[g].length !== RED.length || whitePlaying.size + whiteRest[g].length !== WHITE.length) {
+      gameOk = false; break;
+    }
+  }
+  html += check(gameOk, '各試合の人数整合性', `全${totalGames}試合で紅${RED.length}人・白${WHITE.length}人の整合性OK`);
+
+  html += '</div>';
+  document.getElementById('verify-area').innerHTML = html;
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+    const names = ['schedule', 'players', 'partners', 'opponents', 'scores', 'verify'];
+    btn.classList.toggle('active', names[i] === name);
+  });
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.getElementById(`tab-${name}`).classList.add('active');
+  // スコアタブを開いたときに描画
+  if (name === 'scores' && currentScheduleData) renderScoreTab(currentScheduleData);
+  // 検証タブを開いたときに描画
+  if (name === 'verify' && currentScheduleData) renderVerifyTab(currentScheduleData);
+}
+
+// ===== Excel ダウンロード =====
+async function downloadExcel() {
+  if (!currentScheduleData) return;
+  const d = currentScheduleData;
+  const btn = document.getElementById('excel-btn');
+  btn.disabled = true; btn.textContent = '⏳ 生成中...';
+
+  try {
+    await loadExcelJS();
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('紅白対抗戦スケジュール');
+
+    const RED_L = { type:'pattern', pattern:'solid', fgColor:{argb:'FFFFCCCC'} };
+    const WHT_L = { type:'pattern', pattern:'solid', fgColor:{argb:'FFDDDDFF'} };
+    const R_RST = { type:'pattern', pattern:'solid', fgColor:{argb:'FFFF9999'} };
+    const W_RST = { type:'pattern', pattern:'solid', fgColor:{argb:'FF9999FF'} };
+    const HDR   = { type:'pattern', pattern:'solid', fgColor:{argb:'FF2F2F2F'} };
+    const CRT   = { type:'pattern', pattern:'solid', fgColor:{argb:'FFFFF2CC'} };
+    const GME   = { type:'pattern', pattern:'solid', fgColor:{argb:'FF1F4E79'} };
+    const TTL   = { type:'pattern', pattern:'solid', fgColor:{argb:'FF1F4E79'} };
+    const SUB   = { type:'pattern', pattern:'solid', fgColor:{argb:'FF2E75B6'} };
+    const SEP   = { type:'pattern', pattern:'solid', fgColor:{argb:'FFCCCCCC'} };
+    const VS    = { type:'pattern', pattern:'solid', fgColor:{argb:'FFF2F2F2'} };
+
+    const thin = { style:'thin', color:{argb:'FFAAAAAA'} };
+    const med  = { style:'medium', color:{argb:'FF555555'} };
+    const tb   = { top:thin, left:thin, bottom:thin, right:thin };
+    const ctr  = { horizontal:'center', vertical:'middle', wrapText:true };
+
+    const restPerSide = d.redRest[0].length;
+    const COURTS = d.courts;
+    const totalCols = 2 + 5 + 1 + restPerSide + 1 + restPerSide;
+
+    function cl(n) {
+      let s=''; while(n>0){s=String.fromCharCode(64+(n%26||26))+s;n=Math.floor((n-1)/26);} return s;
+    }
+
+    ws.mergeCells(`A1:${cl(totalCols)}1`);
+    const t1 = ws.getCell('A1');
+    t1.value = '🏓 ピックルボールダブルス 紅白対抗戦スケジュール';
+    t1.fill=TTL; t1.font={bold:true,size:16,color:{argb:'FFFFFFFF'}}; t1.alignment=ctr; ws.getRow(1).height=36;
+
+    ws.mergeCells(`A2:${cl(totalCols)}2`);
+    const t2 = ws.getCell('A2');
+    t2.value = `${d.RED.length+d.WHITE.length}人 ｜ ${COURTS}面 ｜ ${d.totalGames}試合 ｜ 全員${d.gamesPerPlayer}試合出場 ｜ 対戦モード: ${{any:'制限なし',same:'同性対戦',mixed:'ミックス対戦',auto:'自動'}[d.mode]}`;
+    t2.fill=SUB; t2.font={bold:true,size:10,color:{argb:'FFFFFFFF'}}; t2.alignment=ctr; ws.getRow(2).height=20;
+
+    let col=1;
+    function hdr(r,c,v){const cell=ws.getCell(r,c);cell.value=v;cell.fill=HDR;cell.font={bold:true,color:{argb:'FFFFFFFF'},size:9};cell.alignment=ctr;cell.border=tb;}
+    hdr(3,col++,'試合'); hdr(3,col++,'コート');
+    hdr(3,col++,'紅①'); hdr(3,col++,'紅②'); hdr(3,col++,'vs'); hdr(3,col++,'白①'); hdr(3,col++,'白②');
+    hdr(3,col++,'');
+    for(let i=0;i<restPerSide;i++) hdr(3,col++,`紅\n休み${i+1}`);
+    hdr(3,col++,'');
+    for(let i=0;i<restPerSide;i++) hdr(3,col++,`白\n休み${i+1}`);
+    ws.getRow(3).height=28;
+
+    let cr=4;
+    for(let g=0;g<d.totalGames;g++){
+      const gc=d.allCourts[g], rr=d.redRest[g], wr=d.whiteRest[g];
+      for(let ci=0;ci<COURTS;ci++){
+        const r=cr+ci, [rp,wp]=gc[ci], isFirst=ci===0;
+        let c=1;
+        function sc(row,col,val,fill,fc,bold,size){
+          const cell=ws.getCell(row,col);
+          cell.value=val; cell.fill=fill;
+          cell.font={color:{argb:fc},bold:bold||false,size:size||10};
+          cell.alignment=ctr; cell.border=tb;
+        }
+        const pn = id => d.playerMap[id].name + (d.playerMap[id].gender==='M'?' ♂':' ♀');
+        sc(r,c++,isFirst?`試合\n${g+1}`:'',GME,'FFFFFFFF',true,11);
+        sc(r,c++,`コート${ci+1}`,CRT,'FF555500',true,9);
+        sc(r,c++,pn(rp[0]),RED_L,'FFCC0000',true,10);
+        sc(r,c++,pn(rp[1]),RED_L,'FFCC0000',true,10);
+        sc(r,c++,'vs',VS,'FF888888',false,9);
+        sc(r,c++,pn(wp[0]),WHT_L,'FF0000CC',true,10);
+        sc(r,c++,pn(wp[1]),WHT_L,'FF0000CC',true,10);
+        sc(r,c++,'',SEP,'FF000000',false,9);
+        for(let j=0;j<restPerSide;j++) sc(r,c++,isFirst?d.playerMap[rr[j]].name:'',R_RST,'FF880000',true,10);
+        sc(r,c++,'',SEP,'FF000000',false,9);
+        for(let j=0;j<restPerSide;j++) sc(r,c++,isFirst?d.playerMap[wr[j]].name:'',W_RST,'FF000088',true,10);
+        ws.getRow(r).height=22;
+      }
+      ws.mergeCells(cr,1,cr+COURTS-1,1);
+      const rsc=2+5+2;
+      for(let j=0;j<restPerSide;j++) ws.mergeCells(cr,rsc+j,cr+COURTS-1,rsc+j);
+      const rsc2=rsc+restPerSide+1;
+      for(let j=0;j<restPerSide;j++) ws.mergeCells(cr,rsc2+j,cr+COURTS-1,rsc2+j);
+      for(let c=1;c<=totalCols;c++){const cell=ws.getCell(cr+COURTS-1,c);cell.border={...cell.border,bottom:med};}
+      cr+=COURTS;
+    }
+
+    let cw=1;
+    ws.getColumn(cw++).width=7; ws.getColumn(cw++).width=9;
+    ws.getColumn(cw++).width=10; ws.getColumn(cw++).width=10;
+    ws.getColumn(cw++).width=4;
+    ws.getColumn(cw++).width=10; ws.getColumn(cw++).width=10;
+    ws.getColumn(cw++).width=2;
+    for(let j=0;j<restPerSide;j++) ws.getColumn(cw++).width=10;
+    ws.getColumn(cw++).width=2;
+    for(let j=0;j<restPerSide;j++) ws.getColumn(cw++).width=10;
+    ws.views=[{state:'frozen',ySplit:3}];
+
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href=url; a.download=`ピックルボール紅白対抗戦_${d.totalGames}試合.xlsx`; a.click();
+    URL.revokeObjectURL(url);
+  } catch(e) {
+    alert('Excel生成エラー: '+e.message); console.error(e);
+  } finally {
+    btn.disabled=false; btn.textContent='📥 Excelダウンロード (.xlsx)';
+  }
+}
+
+function loadExcelJS() {
+  return new Promise((resolve, reject) => {
+    if (window.ExcelJS) { resolve(); return; }
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+    script.onload = resolve;
+    script.onerror = () => reject(new Error('ExcelJSの読み込みに失敗しました'));
+    document.head.appendChild(script);
+  });
+}
+
+// 組み合わせ数 C(n,k)
+function comb(n, k) {
+  if (k < 0 || k > n) return 0;
+  if (k === 0 || k === n) return 1;
+  let result = 1;
+  for (let i = 0; i < k; i++) { result = result * (n - i) / (i + 1); }
+  return Math.round(result);
+}
+
+// ============================================================
+// autoモード専用: コートパターンに基づく休みスケジュール生成
+// ============================================================
+function generateRestScheduleAuto(players, totalGames, restPerGame, playerMap, gamePatterns, males, females) {
+  const schedule = Array.from({length: totalGames}, () => []);
+  const restCounts = {};
+  const lastRest = {};
+  for (const p of players) { restCounts[p] = 0; lastRest[p] = -999; }
+
+  for (let g = 0; g < totalGames; g++) {
+    const { mixedCourts, maleCourts, femaleCourts } = gamePatterns[g];
+    // 必要な出場人数（restが負にならないようにクランプ）
+    const playM = mixedCourts + maleCourts * 2;
+    const playF = mixedCourts + femaleCourts * 2;
+    const restM = Math.max(0, males.length - playM);
+    const restF = Math.max(0, females.length - playF);
+
+    const sortByRest = (a, b) =>
+      restCounts[a] !== restCounts[b] ? restCounts[a] - restCounts[b] : lastRest[a] - lastRest[b];
+
+    // 休み回数が少ない順に選ぶ
+    const restingMales   = [...males].sort(sortByRest).slice(0, restM);
+    const restingFemales = [...females].sort(sortByRest).slice(0, restF);
+    const resting = [...restingMales, ...restingFemales];
+
+    schedule[g] = resting;
+    for (const p of resting) { restCounts[p]++; lastRest[p] = g; }
+  }
+
+  return schedule;
+}
+
+// ============================================================
+// autoモード専用: コートパターンに基づくペア生成とコート割り当て
+// ============================================================
+function assignCourtsAuto(redPlaying, whitePlaying, partnerCount, opponentCount, playerMap,
+                          mixedCourts, maleCourts, femaleCourts, pairMatchHistory, mixedPlayCount) {
+  const baseMax = parseInt(document.getElementById('maxPartner').value) || 2;
+  const maxPartnerMixed = baseMax + 1; // ミックスは+1
+  const maxPartnerSame  = baseMax;
+
+  // 出場選手を性別で分ける
+  const redMAll = redPlaying.filter(id => playerMap[id].gender === 'M');
+  const redFAll = redPlaying.filter(id => playerMap[id].gender === 'F');
+  const whtMAll = whitePlaying.filter(id => playerMap[id].gender === 'M');
+  const whtFAll = whitePlaying.filter(id => playerMap[id].gender === 'F');
+
+  // ミックス出場回数が少ない順にソートして、ミックスコート用の選手を選ぶ
+  // 同じ回数の場合はランダムにシャッフル → 対戦相手の固定を防ぐ
+  const sortByMixed = (a, b) => {
+    const diff = (mixedPlayCount[a] || 0) - (mixedPlayCount[b] || 0);
+    if (diff !== 0) return diff;
+    return Math.random() - 0.5; // 同回数はランダム
+  };
+  // 男性と女性を独立してソート（同じ男性と同じ女性が常にペアになるのを防ぐ）
+  const redM = [...redMAll].sort(sortByMixed);
+  const redF = [...redFAll].sort(sortByMixed);
+  const whtM = [...whtMAll].sort(sortByMixed);
+  const whtF = [...whtFAll].sort(sortByMixed);
+
+  // ミックスペアを生成（男1+女1）
+  // mixedCourts個の紅ミックスペアと白ミックスペアを生成
+  const redMixedPairs  = assignMixedPairs(redM.slice(0, mixedCourts), redF.slice(0, mixedCourts), partnerCount, maxPartnerMixed);
+  const whtMixedPairs  = assignMixedPairs(whtM.slice(0, mixedCourts), whtF.slice(0, mixedCourts), partnerCount, maxPartnerMixed);
+
+  // ミックス出場回数を更新
+  if (redMixedPairs) {
+    for (const [m, f] of redMixedPairs) {
+      mixedPlayCount[m] = (mixedPlayCount[m] || 0) + 1;
+      mixedPlayCount[f] = (mixedPlayCount[f] || 0) + 1;
+    }
+  }
+  if (whtMixedPairs) {
+    for (const [m, f] of whtMixedPairs) {
+      mixedPlayCount[m] = (mixedPlayCount[m] || 0) + 1;
+      mixedPlayCount[f] = (mixedPlayCount[f] || 0) + 1;
+    }
+  }
+
+  // 同性ペアを生成
+  // 男男ペア: maleCourts個（ミックスに使った分を除く）
+  const redMalePlayers  = redM.slice(mixedCourts);
+  const whtMalePlayers  = whtM.slice(mixedCourts);
+  const redFemalePlayers = redF.slice(mixedCourts);
+  const whtFemalePlayers = whtF.slice(mixedCourts);
+
+  const redMalePairs   = assignSamePairs(redMalePlayers,   partnerCount, maxPartnerSame);
+  const whtMalePairs   = assignSamePairs(whtMalePlayers,   partnerCount, maxPartnerSame);
+  const redFemalePairs = assignSamePairs(redFemalePlayers, partnerCount, maxPartnerSame);
+  const whtFemalePairs = assignSamePairs(whtFemalePlayers, partnerCount, maxPartnerSame);
+
+  if (!redMixedPairs || !whtMixedPairs || !redMalePairs || !whtMalePairs || !redFemalePairs || !whtFemalePairs) {
+    return null;
+  }
+
+  // コートに割り当て: ミックスコート → 男男コート → 女女コート
+  const courts = [];
+
+  // ミックスコート: 紅ミックスペア vs 白ミックスペア（対戦相手の多様性を考慮）
+  const mixedCourtsResult = assignBestCourts(redMixedPairs, whtMixedPairs, opponentCount, pairMatchHistory);
+  for (const [rp, wp] of mixedCourtsResult) courts.push([rp, wp]);
+
+  // 男男コート: 紅男男ペア vs 白男男ペア
+  const maleCourtsResult = assignBestCourts(redMalePairs, whtMalePairs, opponentCount, pairMatchHistory);
+  for (const [rp, wp] of maleCourtsResult) courts.push([rp, wp]);
+
+  // 女女コート: 紅女女ペア vs 白女女ペア
+  const femaleCourtsResult = assignBestCourts(redFemalePairs, whtFemalePairs, opponentCount, pairMatchHistory);
+  for (const [rp, wp] of femaleCourtsResult) courts.push([rp, wp]);
+
+  return courts;
+}
+
+// ミックスペアを生成（男1+女1）
+function assignMixedPairs(males, females, partnerCount, maxPartner) {
+  if (males.length === 0 && females.length === 0) return [];
+  if (males.length !== females.length) return null;
+
+  const TRIALS = 20;
+  let bestPairs = null, bestScore = Infinity;
+
+  for (let trial = 0; trial < TRIALS; trial++) {
+    // 男性をシャッフル
+    const shuffledMales = [...males].sort(() => Math.random() - 0.5);
+    const pairs = [];
+    let valid = true;
+    for (let i = 0; i < shuffledMales.length; i++) {
+      const m = shuffledMales[i], f = females[i];
+      if (partnerCount[m][f] >= maxPartner) { valid = false; break; }
+      pairs.push([m, f]);
+    }
+    if (!valid) continue;
+
+    const counts = pairs.map(([a, b]) => partnerCount[a][b]);
+    const maxP = Math.max(...counts);
+    const pairDiversity = pairs.reduce((s, [a, b]) => s + partnerCount[a][b] ** 2, 0);
+    const totalScore = counts.reduce((s, c) => s + c, 0);
+    const cs = maxP * 100000 + pairDiversity * 1000 + totalScore;
+    if (cs < bestScore) { bestScore = cs; bestPairs = pairs.map(p => [...p]); }
+  }
+
+  // フォールバック: 制約を緩めて再試行
+  if (!bestPairs) {
+    const pairs = males.map((m, i) => [m, females[i]]);
+    bestPairs = pairs;
+  }
+
+  return bestPairs;
+}
+
+// 同性ペアを生成
+function assignSamePairs(players, partnerCount, maxPartner) {
+  if (players.length === 0) return [];
+  if (players.length % 2 !== 0) return null;
+
+  const TRIALS = 20;
+  let bestPairs = null, bestScore = Infinity;
+
+  for (let trial = 0; trial < TRIALS; trial++) {
+    let trialBest = null, trialScore = Infinity;
+
+    function bt(remaining, pairs) {
+      if (remaining.length === 0) {
+        const counts = pairs.map(([a, b]) => partnerCount[a][b]);
+        const maxP = Math.max(...counts);
+        const pairDiversity = pairs.reduce((s, [a, b]) => s + partnerCount[a][b] ** 2, 0);
+        const totalScore = counts.reduce((s, c) => s + c, 0);
+        const cs = maxP * 100000 + pairDiversity * 1000 + totalScore;
+        if (cs < trialScore) { trialScore = cs; trialBest = pairs.map(p => [...p]); }
+        return;
+      }
+      const a = remaining[0];
+      const rest = [...remaining.slice(1)];
+      rest.sort((x, y) => {
+        const diff = partnerCount[a][x] - partnerCount[a][y];
+        if (diff !== 0) return diff;
+        return Math.random() - 0.5;
+      });
+      for (let i = 0; i < rest.length; i++) {
+        const b = rest[i];
+        if (partnerCount[a][b] >= maxPartner) continue;
+        bt(rest.filter((_, idx) => idx !== i), [...pairs, [a, b]]);
+      }
+    }
+
+    bt(players, []);
+    if (trialBest && trialScore < bestScore) { bestScore = trialScore; bestPairs = trialBest; }
+  }
+
+  return bestPairs;
+}
+
+// 最良のコート割り当てを選ぶ（対戦相手の多様性を最大化）
+// ランダム性を加えるため、スコアが同じ場合はランダムに選ぶ
+function assignBestCourts(redPairs, whitePairs, opponentCount, pairMatchHistory) {
+  if (redPairs.length === 0) return [];
+  const n = redPairs.length;
+  const perms = permutations(Array.from({length: n}, (_, i) => i));
+
+  // 各permのスコアを計算
+  const scored = perms.map(perm => {
+    let score = 0, maxOpp = 0;
+    for (let i = 0; i < n; i++) {
+      const rp = redPairs[i], wp = whitePairs[perm[i]];
+      const pairKey = [...rp].sort().join(',') + '|' + [...wp].sort().join(',');
+      const pairKeyRev = [...wp].sort().join(',') + '|' + [...rp].sort().join(',');
+      const pairMatchCount = (pairMatchHistory.get(pairKey) || 0) + (pairMatchHistory.get(pairKeyRev) || 0);
+      score += pairMatchCount * 500000;
+      const isExactDuplicate = rp.every(r => wp.every(w => opponentCount[r][w] > 0));
+      if (isExactDuplicate) score += 1000000;
+      for (const r of rp) for (const w of wp) {
+        score += opponentCount[r][w];
+        maxOpp = Math.max(maxOpp, opponentCount[r][w]);
+      }
+    }
+    return { perm, cs: maxOpp * 10000 + score };
+  });
+
+  // 最小スコアを見つける
+  const minScore = Math.min(...scored.map(s => s.cs));
+  // 最小スコアのpermを全て取得
+  const bestPerms = scored.filter(s => s.cs === minScore).map(s => s.perm);
+  // ランダムに1つ選ぶ
+  const bestPerm = bestPerms[Math.floor(Math.random() * bestPerms.length)];
+
+  return bestPerm.map((wi, ri) => [redPairs[ri], whitePairs[wi]]);
+}
+
+// 対戦相手の偏り統計を計算（最大回数・分散）
+function calcOppStats(data) {
+  if (!data || !data.RED || !data.WHITE || !data.opponentCount) return { maxOpp: 0, variance: 0 };
+  const vals = [];
+  for (const r of data.RED) for (const w of data.WHITE) vals.push(data.opponentCount[r][w]);
+  const maxOpp = Math.max(...vals);
+  const avg = vals.reduce((s, v) => s + v, 0) / vals.length;
+  const variance = vals.reduce((s, v) => s + (v - avg) ** 2, 0) / vals.length;
+  return { maxOpp, variance };
+}
+
+// ③男男vs女女のコート数をカウント
+function countType3(data) {
+  if (!data || !data.allCourts || !data.playerMap) return 0;
+  let count = 0;
+  for (const gameCourts of data.allCourts) {
+    for (const [rp, wp] of gameCourts) {
+      const rg = rp.map(id => data.playerMap[id].gender).sort().join('');
+      const wg = wp.map(id => data.playerMap[id].gender).sort().join('');
+      if ((rg === 'MM' && wg === 'FF') || (rg === 'FF' && wg === 'MM')) count++;
+    }
+  }
+  return count;
+}
+
+// ============================================================
+// localStorage 保存・読み込み
+// ============================================================
+const LS_KEY = 'pickleball_settings';
+
+function saveToLocalStorage() {
+  const settings = {
+    courts: document.getElementById('courts').value,
+    totalGames: document.getElementById('totalGames').value,
+    maxPartner: document.getElementById('maxPartner').value,
+    mode: currentMode,
+    mixedRatio: document.getElementById('mixed-ratio').value,
+    redPlayers: redPlayers.map(p => ({ name: p.name, gender: p.gender })),
+    whitePlayers: whitePlayers.map(p => ({ name: p.name, gender: p.gender })),
+    redTeamName: document.getElementById('red-team-name').value,
+    whiteTeamName: document.getElementById('white-team-name').value,
+  };
+  try { localStorage.setItem(LS_KEY, JSON.stringify(settings)); } catch(e) {}
+}
+
+function loadFromLocalStorage() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return false;
+    const s = JSON.parse(raw);
+    if (s.courts) document.getElementById('courts').value = s.courts;
+    if (s.totalGames) document.getElementById('totalGames').value = s.totalGames;
+    if (s.maxPartner) document.getElementById('maxPartner').value = s.maxPartner;
+    if (s.mixedRatio) {
+      document.getElementById('mixed-ratio').value = s.mixedRatio;
+      document.getElementById('mixed-ratio-label').textContent = s.mixedRatio + '%';
+    }
+    if (s.redPlayers && s.redPlayers.length >= 2) {
+      redPlayers = s.redPlayers.map((p, i) => ({ id: i + 1, name: p.name, gender: p.gender, team: 'red' }));
+    }
+    if (s.whitePlayers && s.whitePlayers.length >= 2) {
+      const redCount = redPlayers.length;
+      whitePlayers = s.whitePlayers.map((p, i) => ({ id: redCount + i + 1, name: p.name, gender: p.gender, team: 'white' }));
+    }
+    if (s.redTeamName) {
+      document.getElementById('red-team-name').value = s.redTeamName;
+      document.getElementById('red-team-label').textContent = s.redTeamName;
+    }
+    if (s.whiteTeamName) {
+      document.getElementById('white-team-name').value = s.whiteTeamName;
+      document.getElementById('white-team-label').textContent = s.whiteTeamName;
+    }
+    if (s.mode) selectMode(s.mode);
+    return true;
+  } catch(e) { return false; }
+}
+
+function resetSettings() {
+  if (!confirm('設定をリセットしますか？（選手名・性別・基本設定が初期値に戻ります）')) return;
+  localStorage.removeItem(LS_KEY);
+  document.getElementById('courts').value = 3;
+  document.getElementById('totalGames').value = 12;
+  document.getElementById('maxPartner').value = 2;
+  document.getElementById('mixed-ratio').value = 50;
+  document.getElementById('mixed-ratio-label').textContent = '50%';
+  selectMode('any');
+  initPlayers();
+}
+
+// ===== 初期化 =====
+const loaded = loadFromLocalStorage();
+if (!loaded) initPlayers();
+else renderPlayerLists();
+
+document.querySelectorAll('#courts, #totalGames').forEach(el => el.addEventListener('input', () => { validate(); saveToLocalStorage(); }));
+
+// 選手データ変更時に自動保存（updatePlayer, addPlayer, removePlayer から呼ばれる）
+const _origUpdatePlayer = updatePlayer;
+window.updatePlayer = function(team, idx, field, val) {
+  _origUpdatePlayer(team, idx, field, val);
+  saveToLocalStorage();
+};
+const _origAddPlayer = addPlayer;
+window.addPlayer = function(team) {
+  _origAddPlayer(team);
+  saveToLocalStorage();
+};
+const _origRemovePlayer = removePlayer;
+window.removePlayer = function(team, idx) {
+  _origRemovePlayer(team, idx);
+  saveToLocalStorage();
+};
+const _origSelectMode = selectMode;
+window.selectMode = function(mode) {
+  _origSelectMode(mode);
+  saveToLocalStorage();
+};
+
+// ============================================================
+// URL共有
+// ============================================================
+function shareURL() {
+  const settings = {
+    courts: document.getElementById('courts').value,
+    totalGames: document.getElementById('totalGames').value,
+    maxPartner: document.getElementById('maxPartner').value,
+    mode: currentMode,
+    mixedRatio: document.getElementById('mixed-ratio').value,
+    redTeamName: document.getElementById('red-team-name').value,
+    whiteTeamName: document.getElementById('white-team-name').value,
+    redPlayers: redPlayers.map(p => ({ name: p.name, gender: p.gender })),
+    whitePlayers: whitePlayers.map(p => ({ name: p.name, gender: p.gender })),
+  };
+  try {
+    const encoded = btoa(encodeURIComponent(JSON.stringify(settings)));
+    const url = location.href.split('?')[0] + '?s=' + encoded;
+    navigator.clipboard.writeText(url).then(() => {
+      alert('✅ URLをクリップボードにコピーしました！\n\nこのURLを共有すると、同じ設定でページを開けます。');
+    }).catch(() => {
+      prompt('以下のURLをコピーしてください:', url);
+    });
+  } catch(e) {
+    alert('URL生成に失敗しました: ' + e.message);
+  }
+}
+
+// URLパラメータから設定を読み込む
+function loadFromURL() {
+  try {
+    const params = new URLSearchParams(location.search);
+    const s = params.get('s');
+    if (!s) return false;
+    const settings = JSON.parse(decodeURIComponent(atob(s)));
+    if (settings.courts) document.getElementById('courts').value = settings.courts;
+    if (settings.totalGames) document.getElementById('totalGames').value = settings.totalGames;
+    if (settings.maxPartner) document.getElementById('maxPartner').value = settings.maxPartner;
+    if (settings.mixedRatio) {
+      document.getElementById('mixed-ratio').value = settings.mixedRatio;
+      document.getElementById('mixed-ratio-label').textContent = settings.mixedRatio + '%';
+    }
+    if (settings.redTeamName) {
+      document.getElementById('red-team-name').value = settings.redTeamName;
+      document.getElementById('red-team-label').textContent = settings.redTeamName;
+    }
+    if (settings.whiteTeamName) {
+      document.getElementById('white-team-name').value = settings.whiteTeamName;
+      document.getElementById('white-team-label').textContent = settings.whiteTeamName;
+    }
+    if (settings.redPlayers && settings.redPlayers.length >= 2) {
+      redPlayers = settings.redPlayers.map((p, i) => ({ id: i + 1, name: p.name, gender: p.gender, team: 'red' }));
+    }
+    if (settings.whitePlayers && settings.whitePlayers.length >= 2) {
+      const redCount = redPlayers.length;
+      whitePlayers = settings.whitePlayers.map((p, i) => ({ id: redCount + i + 1, name: p.name, gender: p.gender, team: 'white' }));
+    }
+    if (settings.mode) selectMode(settings.mode);
+    return true;
+  } catch(e) { return false; }
+}
+
+// URLパラメータが優先（URLパラメータ → localStorage → デフォルト）
+// ※ 初期化は最初の loadFromLocalStorage() / initPlayers() で済んでいるので
+//   URLパラメータがある場合のみ上書きする
+const loadedFromURL = loadFromURL();
+if (loadedFromURL) renderPlayerLists();
+</script>
+</body>
+</html>
