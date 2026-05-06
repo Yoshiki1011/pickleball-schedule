@@ -346,7 +346,7 @@
 
 <header>
   <h1>🏓 ピックルボールダブルス 紅白対抗戦 スケジュール生成</h1>
-  <p>選手名・性別・対戦モードを設定して最適なスケジュールを自動生成 &nbsp;<span style="background:rgba(255,255,255,0.2);border-radius:4px;padding:2px 8px;font-size:0.75rem;font-weight:bold;letter-spacing:0.05em;">v1.3.0</span></p>
+  <p>選手名・性別・対戦モードを設定して最適なスケジュールを自動生成 &nbsp;<span style="background:rgba(255,255,255,0.2);border-radius:4px;padding:2px 8px;font-size:0.75rem;font-weight:bold;letter-spacing:0.05em;">v1.4.0</span></p>
 </header>
 
 <div class="container">
@@ -461,6 +461,19 @@
     <button class="btn" onclick="shareURL()" style="background:#f0f4f8;color:#2E75B6;border:1px solid #2E75B6;margin-top:8px;font-size:0.82rem;padding:8px;">
       🔗 URLで共有
     </button>
+    <button class="btn" onclick="showQRCode()" style="background:#f0f4f8;color:#28a745;border:1px solid #28a745;margin-top:8px;font-size:0.82rem;padding:8px;">
+      📱 QRコードで共有
+    </button>
+    <!-- QRコードモーダル -->
+    <div id="qr-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;">
+      <div style="background:white;border-radius:16px;padding:28px 32px;text-align:center;max-width:320px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.3);">
+        <div style="font-size:1.1rem;font-weight:bold;margin-bottom:6px;">📱 QRコードで共有</div>
+        <div style="font-size:0.78rem;color:#888;margin-bottom:16px;">スマホでスキャンすると同じ設定で開けます</div>
+        <div id="qr-canvas-wrap" style="display:flex;justify-content:center;margin-bottom:16px;"></div>
+        <div id="qr-url-text" style="font-size:0.7rem;color:#aaa;word-break:break-all;margin-bottom:16px;max-height:60px;overflow:hidden;"></div>
+        <button onclick="closeQRModal()" style="background:#2E75B6;color:white;border:none;border-radius:8px;padding:10px 28px;cursor:pointer;font-size:0.9rem;font-weight:bold;">閉じる</button>
+      </div>
+    </div>
     <button class="btn" onclick="resetSettings()" style="background:#f0f4f8;color:#666;border:1px solid #ddd;margin-top:8px;font-size:0.82rem;padding:8px;">
       🔄 設定をリセット
     </button>
@@ -2348,6 +2361,74 @@ function loadFromURL() {
 //   URLパラメータがある場合のみ上書きする
 const loadedFromURL = loadFromURL();
 if (loadedFromURL) renderPlayerLists();
+
+// ============================================================
+// QRコード生成
+// ============================================================
+function buildShareURL() {
+  const settings = {
+    courts: document.getElementById('courts').value,
+    totalGames: document.getElementById('totalGames').value,
+    maxPartner: document.getElementById('maxPartner').value,
+    mode: currentMode,
+    mixedRatio: document.getElementById('mixed-ratio').value,
+    redTeamName: document.getElementById('red-team-name').value,
+    whiteTeamName: document.getElementById('white-team-name').value,
+    redPlayers: redPlayers.map(p => ({ name: p.name, gender: p.gender })),
+    whitePlayers: whitePlayers.map(p => ({ name: p.name, gender: p.gender })),
+  };
+  const encoded = btoa(encodeURIComponent(JSON.stringify(settings)));
+  return location.href.split('?')[0] + '?s=' + encoded;
+}
+
+function showQRCode() {
+  const url = buildShareURL();
+  const modal = document.getElementById('qr-modal');
+  const wrap = document.getElementById('qr-canvas-wrap');
+  const urlText = document.getElementById('qr-url-text');
+
+  wrap.innerHTML = '<div style="color:#888;font-size:0.85rem;padding:20px">QRコード生成中...</div>';
+  urlText.textContent = url;
+  modal.style.display = 'flex';
+
+  // qrcode.jsをCDNから動的ロード
+  loadQRCodeJS().then(() => {
+    wrap.innerHTML = '';
+    const canvas = document.createElement('canvas');
+    wrap.appendChild(canvas);
+    QRCode.toCanvas(canvas, url, {
+      width: 220,
+      margin: 2,
+      color: { dark: '#1F4E79', light: '#ffffff' }
+    }, err => {
+      if (err) {
+        wrap.innerHTML = `<div style="color:#cc0000;font-size:0.8rem">QRコード生成エラー: ${err.message}</div>`;
+      }
+    });
+  }).catch(e => {
+    wrap.innerHTML = `<div style="color:#cc0000;font-size:0.8rem">ライブラリ読み込みエラー</div>`;
+  });
+}
+
+function closeQRModal() {
+  document.getElementById('qr-modal').style.display = 'none';
+}
+
+// モーダル外クリックで閉じる
+document.getElementById('qr-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeQRModal();
+});
+
+function loadQRCodeJS() {
+  return new Promise((resolve, reject) => {
+    if (window.QRCode) { resolve(); return; }
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js';
+    script.onload = resolve;
+    script.onerror = () => reject(new Error('QRコードライブラリの読み込みに失敗しました'));
+    document.head.appendChild(script);
+  });
+}
 </script>
 </body>
 </html>
