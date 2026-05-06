@@ -2236,13 +2236,18 @@ function loadFromLocalStorage() {
 }
 
 function resetSettings() {
-  if (!confirm('設定をリセットしますか？（選手名・性別・基本設定が初期値に戻ります）')) return;
+  if (!confirm('設定をリセットしますか？（選手名・性別・チーム名・基本設定が初期値に戻ります）')) return;
   localStorage.removeItem(LS_KEY);
   document.getElementById('courts').value = 3;
   document.getElementById('totalGames').value = 12;
   document.getElementById('maxPartner').value = 2;
   document.getElementById('mixed-ratio').value = 50;
   document.getElementById('mixed-ratio-label').textContent = '50%';
+  // チーム名をデフォルトに戻す
+  document.getElementById('red-team-name').value = '紅組';
+  document.getElementById('red-team-label').textContent = '紅組';
+  document.getElementById('white-team-name').value = '白組';
+  document.getElementById('white-team-label').textContent = '白組';
   selectMode('any');
   initPlayers();
 }
