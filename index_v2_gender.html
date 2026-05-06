@@ -909,7 +909,7 @@ function generate() {
       renderResults(data);
       document.getElementById('loading').style.display = 'none';
       document.getElementById('result-area').style.display = 'block';
-      document.getElementById('excel-btn').disabled = false;
+      document.getElementById('btn-excel').disabled = false;
       // 重複警告の表示（50回試行しても残った場合のみ）
       if (data.duplicateWarnings && data.duplicateWarnings.length > 0) {
         // 試合数を変えると重複が解消できるか提案
@@ -1859,7 +1859,7 @@ function switchTab(name) {
 async function downloadExcel() {
   if (!currentScheduleData) return;
   const d = currentScheduleData;
-  const btn = document.getElementById('excel-btn');
+  const btn = document.getElementById('btn-excel');
   btn.disabled = true; btn.textContent = '⏳ 生成中...';
 
   try {
