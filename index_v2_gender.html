@@ -347,7 +347,7 @@
 <header style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
   <div>
     <h1 id="header-title">🏓 ピックルボールダブルス 紅白対抗戦 スケジュール生成</h1>
-    <p id="header-sub">選手名・性別・対戦モードを設定して最適なスケジュールを自動生成 &nbsp;<span style="background:rgba(255,255,255,0.2);border-radius:4px;padding:2px 8px;font-size:0.75rem;font-weight:bold;letter-spacing:0.05em;">v1.5.3</span></p>
+    <p id="header-sub">選手名・性別・対戦モードを設定して最適なスケジュールを自動生成 &nbsp;<span style="background:rgba(255,255,255,0.2);border-radius:4px;padding:2px 8px;font-size:0.75rem;font-weight:bold;letter-spacing:0.05em;">v1.5.4</span></p>
   </div>
   <div style="display:flex;gap:6px;flex-shrink:0;">
     <button onclick="setLang('ja')" id="lang-ja" style="background:rgba(255,255,255,0.25);border:2px solid rgba(255,255,255,0.6);color:white;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:0.85rem;font-weight:bold;">🇯🇵 日本語</button>
@@ -490,19 +490,19 @@
   <div>
     <div id="loading">
       <div class="spinner"></div>
-      <div>スケジュール生成中...</div>
+      <div id="loading-text">スケジュール生成中...</div>
     </div>
 
     <div id="result-area">
       <div class="panel" style="margin-bottom:16px">
-        <div class="panel-header">📊 統計</div>
+        <div class="panel-header" id="panel-stats-header">📊 統計</div>
         <div class="panel-body">
           <div class="stats-bar" id="stats-bar"></div>
         </div>
       </div>
 
       <div class="panel">
-        <div class="panel-header">📋 スケジュール</div>
+        <div class="panel-header" id="panel-schedule-header">📋 スケジュール</div>
         <div class="panel-body">
           <div class="tabs">
             <button class="tab-btn active" onclick="switchTab('schedule')">試合一覧</button>
@@ -639,11 +639,12 @@ function selectMode(mode) {
   currentMode = mode;
   document.querySelectorAll('.mode-card').forEach(el => el.classList.remove('selected'));
   document.getElementById(`mode-${mode}`).classList.add('selected');
+  const t = i18n[currentLang];
   const notes = {
-    any:   '',
-    same:  '💡 男性同士・女性同士のペアが対戦します',
-    mixed: '💡 男女ペア（ミックス）同士が対戦します',
-    auto:  '💡 同性対戦とミックス対戦を自動で組み合わせます'
+    any:   t.modeNoteAny || '',
+    same:  t.modeNoteSame || '💡 男性同士・女性同士のペアが対戦します',
+    mixed: t.modeNoteMixed || '💡 男女ペア（ミックス）同士が対戦します',
+    auto:  t.modeNoteAuto || '💡 同性対戦とミックス対戦を自動で組み合わせます'
   };
   document.getElementById('mode-note').textContent = notes[mode];
   // autoモード時のみスライダーを表示
@@ -664,16 +665,17 @@ function validate() {
 
   let html = '', ok = true;
 
+  const t = i18n[currentLang];
   if (redPlayers.length !== whitePlayers.length) {
-    html += `<span class="badge-ng">❌ 紅組(${redPlayers.length}人)と白組(${whitePlayers.length}人)の人数を揃えてください</span><br>`;
+    html += `<span class="badge-ng">${t.errTeamSize(redPlayers.length, whitePlayers.length)}</span><br>`;
     ok = false;
   }
   if (courts >= half && half > 0) {
-    html += `<span class="badge-ng">❌ コート数は片組人数(${half})より少なくしてください</span><br>`;
+    html += `<span class="badge-ng">${t.errCourtSize(half)}</span><br>`;
     ok = false;
   }
   if (restPerSide !== Math.floor(restPerSide) && ok) {
-    html += `<span class="badge-ng">❌ 片組の休み人数が整数になりません</span><br>`;
+    html += `<span class="badge-ng">${t.errRestNotInt}</span><br>`;
     ok = false;
   }
 
@@ -706,17 +708,16 @@ function validate() {
         if (playM % 2 === 0 && playF % 2 === 0) { whtPossible = true; break; }
       }
       if (!redPossible || !whtPossible) {
-        html += `<span class="badge-ng">❌ 同性対戦モードは現在の設定では実現できません</span><br>`;
-        html += `<span class="badge-ng">　紅組: 男${redM}人・女${redF}人、${restPerSideInt}人休み → 出場男女数が偶数にならない</span><br>`;
-        html += `<span class="badge-warn">💡 男女の人数を偶数にするか、コート数・人数を調整してください</span><br>`;
+        html += `<span class="badge-ng">${t.errSameImpossible}</span><br>`;
+        html += `<span class="badge-ng">${t.errSameDetail(redM, redF, restPerSideInt)}</span><br>`;
+        html += `<span class="badge-warn">${t.warnSameAdjust}</span><br>`;
         ok = false;
       } else if (redM === 0 || redF === 0) {
-        html += `<span class="badge-warn">⚠️ 同性対戦モードは男女両方必要です</span><br>`;
+        html += `<span class="badge-warn">${t.warnSameNeedBoth}</span><br>`;
       }
     }
 
     if (currentMode === 'mixed') {
-      // ミックス対戦: 各試合で出場する男性・女性が同数（コート数と同じ）である必要がある
       let redPossible = false, whtPossible = false;
       for (let restM = 0; restM <= Math.min(redM, restPerSideInt); restM++) {
         const restF = restPerSideInt - restM;
@@ -731,43 +732,35 @@ function validate() {
         if (playM === playF) { whtPossible = true; break; }
       }
       if (!redPossible || !whtPossible) {
-        html += `<span class="badge-ng">❌ ミックス対戦モードは現在の設定では実現できません</span><br>`;
-        html += `<span class="badge-warn">💡 男女同数（紅: 男${redM}人・女${redF}人 → 同数にする）にしてください</span><br>`;
+        html += `<span class="badge-ng">${t.errMixedImpossible}</span><br>`;
+        html += `<span class="badge-warn">${t.warnMixedEqual(redM, redF, whtM, whtF)}</span><br>`;
         ok = false;
       } else if (redM !== redF || whtM !== whtF) {
-        // 男女比が不均等な場合、少ない方が毎試合全員出場（休みなし）になるか確認
         const checkMixedRest = (mCount, fCount, label) => {
-          const minCount = Math.min(mCount, fCount); // ミックスで出場できる人数
-          const majorGender = mCount < fCount ? '男性' : '女性';
-          const majorCount = Math.min(mCount, fCount);
-          // ミックスコートで必要な男性数 = コート数 = majorCount
-          // majorCountが少ない方の人数と等しい → 毎試合全員出場
           if (mCount !== fCount) {
             const minorCount = Math.min(mCount, fCount);
-            const minorGender = mCount < fCount ? '男性' : '女性';
-            // 各試合でminorCount人全員出場 → 休みゼロ
+            const minorGender = mCount < fCount ? (currentLang === 'en' ? 'Male' : '男性') : (currentLang === 'en' ? 'Female' : '女性');
             return { ok: false, minorGender, minorCount, label };
           }
           return { ok: true };
         };
-        const redCheck = checkMixedRest(redM, redF, '紅組');
-        const whtCheck = checkMixedRest(whtM, whtF, '白組');
+        const redLabel = currentLang === 'en' ? 'Red' : '紅組';
+        const whtLabel = currentLang === 'en' ? 'White' : '白組';
+        const redCheck = checkMixedRest(redM, redF, redLabel);
+        const whtCheck = checkMixedRest(whtM, whtF, whtLabel);
         if (!redCheck.ok || !whtCheck.ok) {
           const bad = !redCheck.ok ? redCheck : whtCheck;
-          html += `<span class="badge-warn">⚠️ ミックスモードは男女同数推奨（紅: 男${redM}女${redF}、白: 男${whtM}女${whtF}）</span><br>`;
-          html += `<span class="badge-warn">　⚠️ ${bad.label}の${bad.minorGender}（${bad.minorCount}人）は毎試合全員出場となり、休みが取れません</span><br>`;
-          html += `<span class="badge-warn">　💡 解決策: ① ${bad.label}の男女比を均等にする ② 対戦モードを「制限なし」に変更する</span><br>`;
-          html += `<span style="font-size:0.78rem;color:#888;margin-left:1em">　　<button onclick="selectMode('any')" style="background:#2E75B6;color:white;border:none;border-radius:4px;padding:2px 10px;cursor:pointer;font-size:0.78rem">「制限なし」に切り替える</button></span><br>`;
+          html += `<span class="badge-warn">${t.warnMixedUnequal(redM, redF, whtM, whtF)}</span><br>`;
+          html += `<span class="badge-warn">${t.warnMixedNoRest(bad.label, bad.minorGender, bad.minorCount)}</span><br>`;
+          html += `<span class="badge-warn">${t.warnMixedSolution(bad.label)}</span><br>`;
+          html += `<span style="font-size:0.78rem;color:#888;margin-left:1em">　　<button onclick="selectMode('any')" style="background:#2E75B6;color:white;border:none;border-radius:4px;padding:2px 10px;cursor:pointer;font-size:0.78rem">${t.btnSwitchAny}</button></span><br>`;
         } else {
-          html += `<span class="badge-warn">⚠️ ミックスモードは男女同数推奨（紅: 男${redM}女${redF}、白: 男${whtM}女${whtF}）</span><br>`;
+          html += `<span class="badge-warn">${t.warnMixedUnequal(redM, redF, whtM, whtF)}</span><br>`;
         }
       }
     }
 
     if (currentMode === 'auto') {
-      // autoモードの数学的可能性チェック
-      // 男男ペア vs 男男ペア / 女女ペア vs 女女ペア / 男女ペア vs 男女ペア
-      // 出場男性数・女性数が偶数になるか確認
       const redM  = redPlayers.filter(p => p.gender === 'M').length;
       const redF  = redPlayers.filter(p => p.gender === 'F').length;
       const whtM  = whitePlayers.filter(p => p.gender === 'M').length;
@@ -787,41 +780,32 @@ function validate() {
         if (playM % 2 === 0 && playF % 2 === 0) { whtPossible = true; break; }
       }
       if (!redPossible || !whtPossible) {
-        html += `<span class="badge-warn">⚠️ 自動モード: 出場男女数が偶数にならないため、一部の試合でミックス対戦になる場合があります</span><br>`;
+        html += `<span class="badge-warn">${t.warnAutoOdd}</span><br>`;
       } else {
-        html += `<span class="badge-ok">✓</span> 自動モード: 男男vs男男 / 女女vs女女 / 男女vs男女 を組み合わせます<br>`;
+        html += `<span class="badge-ok">✓</span> ${t.okAutoMode}<br>`;
       }
 
-      // 男女比の均等休みチェック（警告のみ、生成は許可）
-      // 各組の男女比が「全員均等に休める」かを確認
-      // 条件: 各試合の男休み・女休みが整数になる → 男の総休み/試合数 が整数
-      // 紅組: 男redM人 → 総休み = redM × restPerPlayer → 平均 = redM × restPerPlayer / totalGames
-      //       = redM × (totalGames - gamesPerPlayer) / totalGames
-      // これが整数になるには: redM × restPerPlayer が totalGames の倍数
       if (Number.isInteger(gamesPerPlayer)) {
         const restPerPlayer = totalGames - gamesPerPlayer;
-        // 各組の男女比チェック
         const checkUniform = (mCount, fCount, label) => {
-          // 各試合の男休み数の合計 = mCount × restPerPlayer
-          // 各試合の女休み数の合計 = fCount × restPerPlayer
-          // 各試合の男休み数 = mCount × restPerPlayer / totalGames
           const avgMRest = (mCount * restPerPlayer) / totalGames;
           const avgFRest = (fCount * restPerPlayer) / totalGames;
-          // 整数でない場合、一部の試合で男性が全員出場（休みなし）になる
           if (!Number.isInteger(avgMRest) || !Number.isInteger(avgFRest)) {
             return { ok: false, avgMRest, avgFRest, mCount, fCount };
           }
           return { ok: true };
         };
-        const redCheck = checkUniform(redM, redF, '紅組');
-        const whtCheck = checkUniform(whtM, whtF, '白組');
+        const redLabel = currentLang === 'en' ? 'Red' : '紅組';
+        const whtLabel = currentLang === 'en' ? 'White' : '白組';
+        const redCheck = checkUniform(redM, redF, redLabel);
+        const whtCheck = checkUniform(whtM, whtF, whtLabel);
         if (!redCheck.ok || !whtCheck.ok) {
-          const badGroup = !redCheck.ok ? { label: '紅組', ...redCheck } : { label: '白組', ...whtCheck };
+          const badGroup = !redCheck.ok ? { label: redLabel, ...redCheck } : { label: whtLabel, ...whtCheck };
           const { label, avgMRest, avgFRest, mCount, fCount } = badGroup;
-          html += `<span class="badge-warn">⚠️ ${label}の男女比（男${mCount}:女${fCount}）では、一部の選手の休み回数が不均等になります</span><br>`;
-          html += `<span class="badge-warn">　男性の平均休み: ${avgMRest.toFixed(2)}回/試合（整数でない）→ 休み回数に最大1試合の差が生じます</span><br>`;
-          html += `<span class="badge-warn">　💡 解決策: ① ${label}の男女比を均等にする ② 対戦モードを「制限なし」に変更する</span><br>`;
-          html += `<span style="font-size:0.78rem;color:#888;margin-left:1em">　　<button onclick="selectMode('any')" style="background:#2E75B6;color:white;border:none;border-radius:4px;padding:2px 10px;cursor:pointer;font-size:0.78rem">「制限なし」に切り替える</button></span><br>`;
+          html += `<span class="badge-warn">${t.warnAutoUniform(label, mCount, fCount)}</span><br>`;
+          html += `<span class="badge-warn">${t.warnAutoRestDetail(avgMRest)}</span><br>`;
+          html += `<span class="badge-warn">${t.warnAutoSolution(label)}</span><br>`;
+          html += `<span style="font-size:0.78rem;color:#888;margin-left:1em">　　<button onclick="selectMode('any')" style="background:#2E75B6;color:white;border:none;border-radius:4px;padding:2px 10px;cursor:pointer;font-size:0.78rem">${t.btnSwitchAny}</button></span><br>`;
         }
       }
     }
@@ -829,17 +813,17 @@ function validate() {
 
   if (ok) {
     const isInt = Number.isInteger(gamesPerPlayer);
-    html += `<span class="badge-ok">✓</span> 総人数: ${totalPlayers}人（紅${redPlayers.length}人・白${whitePlayers.length}人）<br>`;
-    html += `<span class="badge-ok">✓</span> 1試合あたり出場: ${playersPerGame}人、休み: ${restPerGame}人<br>`;
+    html += `<span class="badge-ok">✓</span> ${t.okTotal(totalPlayers, redPlayers.length, whitePlayers.length)}<br>`;
+    html += `<span class="badge-ok">✓</span> ${t.okPerGame(playersPerGame, restPerGame)}<br>`;
     if (isInt) {
-      html += `<span class="badge-ok">✓</span> 1人あたり出場: <b>${gamesPerPlayer}試合</b>、休み: <b>${totalGames - gamesPerPlayer}試合</b><br>`;
+      html += `<span class="badge-ok">✓</span> ${t.okPerPlayer(gamesPerPlayer, totalGames - gamesPerPlayer)}<br>`;
     } else {
-      html += `<span class="badge-warn">⚠️</span> 1人あたり出場: ${gamesPerPlayer.toFixed(1)}試合（不均等）<br>`;
+      html += `<span class="badge-warn">⚠️</span> ${t.warnUneven(gamesPerPlayer)}<br>`;
       let suggestions = [];
-      for (let t = Math.max(1, totalGames - 5); t <= totalGames + 5; t++) {
-        if ((t * playersPerGame) % totalPlayers === 0) suggestions.push(t);
+      for (let s = Math.max(1, totalGames - 5); s <= totalGames + 5; s++) {
+        if ((s * playersPerGame) % totalPlayers === 0) suggestions.push(s);
       }
-      if (suggestions.length > 0) html += `<span class="badge-warn">→ 試合数 ${suggestions.join(' or ')} を推奨</span><br>`;
+      if (suggestions.length > 0) html += `<span class="badge-warn">${t.warnSuggest(suggestions.join(' or '))}</span><br>`;
     }
   }
 
@@ -893,11 +877,8 @@ function generate() {
         let msg = lastError.message || String(lastError);
         if (msg.includes('not iterable') || msg.includes('undefined') || msg.includes('null')) {
           const mode = currentMode;
-          if (mode === 'auto') {
-            msg = '自動（混合）モードでスケジュールを生成できませんでした。\n\n考えられる原因：\n・紅組と白組の男女比率が大きく異なる場合、有効なコートパターンが見つからないことがあります\n・例：紅組 男4人・女3人、白組 男2人・女5人 のような組み合わせ\n\n解決策：\n① 男女の人数を均等に近づける（例：各組 男4人・女4人）\n② 対戦モードを「制限なし」に変更する\n③ コート数や試合数を変更する';
-          } else {
-            msg = 'スケジュールの生成に失敗しました。\n「同一ペア最大回数」を増やすか、対戦モードを変更してください。';
-          }
+          const tl = i18n[currentLang];
+          msg = mode === 'auto' ? tl.errGenerateAuto : tl.errGenerateGeneral;
         }
         throw new Error(msg);
       }
@@ -960,11 +941,8 @@ function generate() {
       // エラーメッセージを日本語に変換
       let msg = e.message || String(e);
       if (msg.includes('not iterable') || msg.includes('Symbol') || msg.includes('undefined') || msg.includes('null') || msg.includes('Cannot read')) {
-        if (currentMode === 'auto') {
-          msg = '自動（混合）モードでスケジュールを生成できませんでした。\n\n考えられる原因：\n・紅組と白組の男女比率が大きく異なる場合、有効なコートパターンが見つからないことがあります\n・例：紅組 男4人・女3人、白組 男2人・女5人 のような組み合わせ\n\n解決策：\n① 男女の人数を均等に近づける（例：各組 男4人・女4人）\n② 対戦モードを「制限なし」に変更する\n③ コート数や試合数を変更する';
-        } else {
-          msg = 'スケジュールの生成に失敗しました。\n「同一ペア最大回数」を増やすか、対戦モードを変更してください。';
-        }
+        const tl = i18n[currentLang];
+        msg = currentMode === 'auto' ? tl.errGenerateAuto : tl.errGenerateGeneral;
       }
       document.getElementById('error-msg').innerHTML = `<div class="error-box">❌ ${msg.replace(/\n/g, '<br>')}</div>`;
     }
@@ -1731,6 +1709,9 @@ function renderVerifyTab(d) {
 
   let html = '<div style="font-size:0.85rem">';
 
+  const tl = i18n[currentLang];
+  const isEn = currentLang === 'en';
+
   // 1. 出場回数チェック
   const playCounts = {};
   const restCounts = {};
@@ -1747,9 +1728,9 @@ function renderVerifyTab(d) {
   const expectedRest = d.restPerPlayer;
   const playOk = allIds.every(id => playCounts[id] === expectedPlay && restCounts[id] === expectedRest);
   const playDetail = playOk
-    ? `全${allIds.length}人が${expectedPlay}試合出場・${expectedRest}試合休み`
-    : allIds.filter(id => playCounts[id] !== expectedPlay).map(id => `${playerMap[id].name}: 出場${playCounts[id]}回`).join('、');
-  html += check(playOk, '出場回数均等', playDetail);
+    ? tl.verifyPlayOk(allIds.length, expectedPlay, expectedRest)
+    : allIds.filter(id => playCounts[id] !== expectedPlay).map(id => tl.verifyPlayNg(playerMap[id].name, playCounts[id])).join(isEn ? ', ' : '、');
+  html += check(playOk, tl.verifyPlayCount, playDetail);
 
   // 2. パートナー最大回数チェック
   let maxPartnerActual = 0;
@@ -1759,12 +1740,12 @@ function renderVerifyTab(d) {
       if (b <= a) continue;
       const cnt = partnerCount[a][b];
       if (cnt > maxPartnerActual) maxPartnerActual = cnt;
-      if (cnt > maxPartnerAllowed) partnerViolations.push(`${playerMap[a].name}+${playerMap[b].name}: ${cnt}回`);
+      if (cnt > maxPartnerAllowed) partnerViolations.push(`${playerMap[a].name}+${playerMap[b].name}: ${cnt}${isEn ? 'x' : '回'}`);
     }
   }
   const partnerOk = partnerViolations.length === 0;
-  html += check(partnerOk, `パートナー最大${maxPartnerAllowed}回制限`,
-    partnerOk ? `最大${maxPartnerActual}回（制限内）` : `違反: ${partnerViolations.join('、')}`);
+  html += check(partnerOk, tl.verifyPartnerLimit(maxPartnerAllowed),
+    partnerOk ? tl.verifyPartnerOk(maxPartnerActual) : tl.verifyPartnerNg(partnerViolations.join(isEn ? ', ' : '、')));
 
   // 3. 重複対戦チェック
   const matchHist = new Map();
@@ -1775,12 +1756,17 @@ function renderVerifyTab(d) {
       const k2 = [...wp].sort().join(',') + '|' + [...rp].sort().join(',');
       const canonical = [k1, k2].sort()[0];
       if (matchHist.has(canonical)) {
-        dupList.push(`試合${g+1}: ${rp.map(id=>playerMap[id].name).join('+')} vs ${wp.map(id=>playerMap[id].name).join('+')} (試合${matchHist.get(canonical)}と重複)`);
+        const prevG = matchHist.get(canonical);
+        const rNames = rp.map(id=>playerMap[id].name).join('+');
+        const wNames = wp.map(id=>playerMap[id].name).join('+');
+        dupList.push(isEn
+          ? `Game ${g+1}: ${rNames} vs ${wNames} (dup of game ${prevG})`
+          : `試合${g+1}: ${rNames} vs ${wNames} (試合${prevG}と重複)`);
       } else matchHist.set(canonical, g + 1);
     }
   }
-  html += check(dupList.length === 0, '重複対戦なし',
-    dupList.length === 0 ? '全試合で異なる対戦組み合わせ' : dupList.join('<br>'));
+  html += check(dupList.length === 0, tl.verifyNoDup,
+    dupList.length === 0 ? tl.verifyNoDupOk : tl.verifyNoDupNg(dupList.join('<br>')));
 
   // 4. 連続休みチェック
   const restSched = {};
@@ -1803,8 +1789,8 @@ function renderVerifyTab(d) {
     }
   }
   const consOk = consecutiveList.length === 0;
-  html += check(consOk, '連続休みなし',
-    consOk ? `最大連続休み: ${maxConsecutive}試合` : `連続あり: ${consecutiveList.join('、')}`);
+  html += check(consOk, tl.verifyNoConsec,
+    consOk ? tl.verifyNoConsecOk(maxConsecutive) : tl.verifyNoConsecNg(consecutiveList.join(isEn ? ', ' : '、')));
 
   // 5. 対戦相手の偏りチェック
   let minOpp = 999, maxOpp = 0;
@@ -1813,8 +1799,8 @@ function renderVerifyTab(d) {
     maxOpp = Math.max(maxOpp, opponentCount[r][w]);
   }
   const oppOk = maxOpp <= 3;
-  html += check(oppOk, `対戦相手の偏り（目標: 最大3回）`,
-    `実際: ${minOpp}〜${maxOpp}回 ${oppOk ? '（良好）' : '（偏りあり）'}`);
+  html += check(oppOk, tl.verifyOppBias,
+    oppOk ? tl.verifyOppOk(minOpp, maxOpp) : tl.verifyOppNg(minOpp, maxOpp));
 
   // 6. 対戦タイプチェック（③男男vs女女）
   const t3 = countType3(d);
@@ -1824,8 +1810,7 @@ function renderVerifyTab(d) {
     return rg === wg;
   }).length;
   const t2 = allCourts.flat().length - t1 - t3;
-  html += check(t3 === 0, '③男男vs女女なし',
-    `①同タイプ: ${t1}コート ②ミックス絡み: ${t2}コート ③男男vs女女: ${t3}コート`);
+  html += check(t3 === 0, tl.verifyNoType3, tl.verifyType3Detail(t1, t2, t3));
 
   // 7. 各試合の人数チェック
   let gameOk = true;
@@ -1836,7 +1821,7 @@ function renderVerifyTab(d) {
       gameOk = false; break;
     }
   }
-  html += check(gameOk, '各試合の人数整合性', `全${totalGames}試合で紅${RED.length}人・白${WHITE.length}人の整合性OK`);
+  html += check(gameOk, tl.verifyGameCount, tl.verifyGameCountOk(totalGames, RED.length, WHITE.length));
 
   html += '</div>';
   document.getElementById('verify-area').innerHTML = html;
@@ -1860,12 +1845,13 @@ async function downloadExcel() {
   if (!currentScheduleData) return;
   const d = currentScheduleData;
   const btn = document.getElementById('btn-excel');
-  btn.disabled = true; btn.textContent = '⏳ 生成中...';
+  const tl = i18n[currentLang];
+  btn.disabled = true; btn.textContent = tl.excelGenerating;
 
   try {
     await loadExcelJS();
     const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet('紅白対抗戦スケジュール');
+    const ws = wb.addWorksheet(tl.excelSheet);
 
     const RED_L = { type:'pattern', pattern:'solid', fgColor:{argb:'FFFFCCCC'} };
     const WHT_L = { type:'pattern', pattern:'solid', fgColor:{argb:'FFDDDDFF'} };
@@ -1894,22 +1880,22 @@ async function downloadExcel() {
 
     ws.mergeCells(`A1:${cl(totalCols)}1`);
     const t1 = ws.getCell('A1');
-    t1.value = '🏓 ピックルボールダブルス 紅白対抗戦スケジュール';
+    t1.value = tl.excelTitle;
     t1.fill=TTL; t1.font={bold:true,size:16,color:{argb:'FFFFFFFF'}}; t1.alignment=ctr; ws.getRow(1).height=36;
 
     ws.mergeCells(`A2:${cl(totalCols)}2`);
     const t2 = ws.getCell('A2');
-    t2.value = `${d.RED.length+d.WHITE.length}人 ｜ ${COURTS}面 ｜ ${d.totalGames}試合 ｜ 全員${d.gamesPerPlayer}試合出場 ｜ 対戦モード: ${{any:'制限なし',same:'同性対戦',mixed:'ミックス対戦',auto:'自動'}[d.mode]}`;
+    t2.value = tl.excelSubtitle(d.RED.length+d.WHITE.length, COURTS, d.totalGames, d.gamesPerPlayer, tl.excelModeNames[d.mode]);
     t2.fill=SUB; t2.font={bold:true,size:10,color:{argb:'FFFFFFFF'}}; t2.alignment=ctr; ws.getRow(2).height=20;
 
     let col=1;
     function hdr(r,c,v){const cell=ws.getCell(r,c);cell.value=v;cell.fill=HDR;cell.font={bold:true,color:{argb:'FFFFFFFF'},size:9};cell.alignment=ctr;cell.border=tb;}
-    hdr(3,col++,'試合'); hdr(3,col++,'コート');
-    hdr(3,col++,'紅①'); hdr(3,col++,'紅②'); hdr(3,col++,'vs'); hdr(3,col++,'白①'); hdr(3,col++,'白②');
+    hdr(3,col++,tl.excelGame); hdr(3,col++,tl.excelCourt);
+    hdr(3,col++,tl.excelRed1); hdr(3,col++,tl.excelRed2); hdr(3,col++,'vs'); hdr(3,col++,tl.excelWhite1); hdr(3,col++,tl.excelWhite2);
     hdr(3,col++,'');
-    for(let i=0;i<restPerSide;i++) hdr(3,col++,`紅\n休み${i+1}`);
+    for(let i=0;i<restPerSide;i++) hdr(3,col++,tl.excelRedRest(i+1));
     hdr(3,col++,'');
-    for(let i=0;i<restPerSide;i++) hdr(3,col++,`白\n休み${i+1}`);
+    for(let i=0;i<restPerSide;i++) hdr(3,col++,tl.excelWhiteRest(i+1));
     ws.getRow(3).height=28;
 
     let cr=4;
@@ -1925,8 +1911,8 @@ async function downloadExcel() {
           cell.alignment=ctr; cell.border=tb;
         }
         const pn = id => d.playerMap[id].name + (d.playerMap[id].gender==='M'?' ♂':' ♀');
-        sc(r,c++,isFirst?`試合\n${g+1}`:'',GME,'FFFFFFFF',true,11);
-        sc(r,c++,`コート${ci+1}`,CRT,'FF555500',true,9);
+    sc(r,c++,isFirst?`${tl.excelGame}\n${g+1}`:'',GME,'FFFFFFFF',true,11);
+    sc(r,c++,`${tl.excelCourt}${ci+1}`,CRT,'FF555500',true,9);
         sc(r,c++,pn(rp[0]),RED_L,'FFCC0000',true,10);
         sc(r,c++,pn(rp[1]),RED_L,'FFCC0000',true,10);
         sc(r,c++,'vs',VS,'FF888888',false,9);
@@ -1962,12 +1948,12 @@ async function downloadExcel() {
     const blob = new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href=url; a.download=`ピックルボール紅白対抗戦_${d.totalGames}試合.xlsx`; a.click();
+    a.href=url; a.download=tl.excelFilename(d.totalGames); a.click();
     URL.revokeObjectURL(url);
   } catch(e) {
-    alert('Excel生成エラー: '+e.message); console.error(e);
+    alert(tl.excelError + e.message); console.error(e);
   } finally {
-    btn.disabled=false; btn.textContent='📥 Excelダウンロード (.xlsx)';
+    btn.disabled=false; btn.textContent=tl.btnExcel;
   }
 }
 
@@ -2350,13 +2336,15 @@ function shareURL() {
   try {
     const encoded = btoa(encodeURIComponent(JSON.stringify(settings)));
     const url = location.href.split('?')[0] + '?s=' + encoded;
+    const tl = i18n[currentLang];
     navigator.clipboard.writeText(url).then(() => {
-      alert('✅ URLをクリップボードにコピーしました！\n\nこのURLを共有すると、同じ設定でページを開けます。');
+      alert(tl.shareSuccess);
     }).catch(() => {
-      prompt('以下のURLをコピーしてください:', url);
+      prompt(tl.sharePrompt, url);
     });
   } catch(e) {
-    alert('URL生成に失敗しました: ' + e.message);
+    const tl = i18n[currentLang];
+    alert(tl.shareError + e.message);
   }
 }
 
@@ -2434,6 +2422,100 @@ const i18n = {
     genderM: '♂ 男性', genderF: '♀ 女性',
     modeNames: { any:'制限なし', same:'同性対戦', mixed:'ミックス対戦', auto:'自動（混合）' },
     defaultRedPrefix: '紅', defaultWhitePrefix: '白',
+    // UI固定テキスト
+    loadingText: 'スケジュール生成中...',
+    panelStats: '📊 統計',
+    panelSchedule: '📋 スケジュール',
+    validationDefault: '設定を入力してください',
+    // モードノート
+    modeNoteAny: '',
+    modeNoteSame: '💡 男性同士・女性同士のペアが対戦します',
+    modeNoteMixed: '💡 男女ペア（ミックス）同士が対戦します',
+    modeNoteAuto: '💡 同性対戦とミックス対戦を自動で組み合わせます',
+    // validate メッセージ
+    errTeamSize: (r, w) => `❌ 紅組(${r}人)と白組(${w}人)の人数を揃えてください`,
+    errCourtSize: (h) => `❌ コート数は片組人数(${h})より少なくしてください`,
+    errRestNotInt: '❌ 片組の休み人数が整数になりません',
+    errSameImpossible: '❌ 同性対戦モードは現在の設定では実現できません',
+    errSameDetail: (rM, rF, rest) => `　紅組: 男${rM}人・女${rF}人、${rest}人休み → 出場男女数が偶数にならない`,
+    warnSameAdjust: '💡 男女の人数を偶数にするか、コート数・人数を調整してください',
+    warnSameNeedBoth: '⚠️ 同性対戦モードは男女両方必要です',
+    errMixedImpossible: '❌ ミックス対戦モードは現在の設定では実現できません',
+    warnMixedEqual: (rM, rF, wM, wF) => `💡 男女同数（紅: 男${rM}人・女${rF}人 → 同数にする）にしてください`,
+    warnMixedUnequal: (rM, rF, wM, wF) => `⚠️ ミックスモードは男女同数推奨（紅: 男${rM}女${rF}、白: 男${wM}女${wF}）`,
+    warnMixedNoRest: (label, gender, count) => `　⚠️ ${label}の${gender}（${count}人）は毎試合全員出場となり、休みが取れません`,
+    warnMixedSolution: (label) => `　💡 解決策: ① ${label}の男女比を均等にする ② 対戦モードを「制限なし」に変更する`,
+    btnSwitchAny: '「制限なし」に切り替える',
+    warnAutoOdd: '⚠️ 自動モード: 出場男女数が偶数にならないため、一部の試合でミックス対戦になる場合があります',
+    okAutoMode: '✓ 自動モード: 男男vs男男 / 女女vs女女 / 男女vs男女 を組み合わせます',
+    warnAutoUniform: (label, mCount, fCount) => `⚠️ ${label}の男女比（男${mCount}:女${fCount}）では、一部の選手の休み回数が不均等になります`,
+    warnAutoRestDetail: (avgM) => `　男性の平均休み: ${avgM.toFixed(2)}回/試合（整数でない）→ 休み回数に最大1試合の差が生じます`,
+    warnAutoSolution: (label) => `　💡 解決策: ① ${label}の男女比を均等にする ② 対戦モードを「制限なし」に変更する`,
+    okTotal: (total, r, w) => `✓ 総人数: ${total}人（紅${r}人・白${w}人）`,
+    okPerGame: (play, rest) => `✓ 1試合あたり出場: ${play}人、休み: ${rest}人`,
+    okPerPlayer: (play, rest) => `✓ 1人あたり出場: <b>${play}試合</b>、休み: <b>${rest}試合</b>`,
+    warnUneven: (play) => `⚠️ 1人あたり出場: ${play.toFixed(1)}試合（不均等）`,
+    warnSuggest: (list) => `→ 試合数 ${list} を推奨`,
+    // generate エラー
+    errGenerateAuto: '自動（混合）モードでスケジュールを生成できませんでした。\n\n考えられる原因：\n・紅組と白組の男女比率が大きく異なる場合、有効なコートパターンが見つからないことがあります\n・例：紅組 男4人・女3人、白組 男2人・女5人 のような組み合わせ\n\n解決策：\n① 男女の人数を均等に近づける（例：各組 男4人・女4人）\n② 対戦モードを「制限なし」に変更する\n③ コート数や試合数を変更する',
+    errGenerateGeneral: 'スケジュールの生成に失敗しました。\n「同一ペア最大回数」を増やすか、対戦モードを変更してください。',
+    errPartnerAssign: (g) => `試合${g}でパートナー割り当てに失敗しました。\n「同一ペア最大回数」を増やすか、対戦モードを変更してください。`,
+    errCourtAssign: (g) => `試合${g}でコート割り当てに失敗しました。\n「同一ペア最大回数」を増やすか、対戦モードを変更してください。`,
+    warnDuplicate: (count) => `⚠️ <b>同一対戦の重複が${count}件あります</b>（人数の制約上、避けられない場合があります）`,
+    warnSuggestGames: (list) => `💡 <b>試合数を ${list} に変更すると重複が解消できる可能性があります</b>`,
+    btnRegenerate: (t) => `${t}試合で再生成`,
+    // verify ラベル
+    verifyPlayCount: '出場回数均等',
+    verifyPlayOk: (n, play, rest) => `全${n}人が${play}試合出場・${rest}試合休み`,
+    verifyPlayNg: (id, count) => `${id}: 出場${count}回`,
+    verifyPartnerLimit: (max) => `パートナー最大${max}回制限`,
+    verifyPartnerOk: (max) => `最大${max}回（制限内）`,
+    verifyPartnerNg: (list) => `違反: ${list}`,
+    verifyNoDup: '重複対戦なし',
+    verifyNoDupOk: '全試合で異なる対戦組み合わせ',
+    verifyNoDupNg: (list) => list,
+    verifyNoConsec: '連続休みなし',
+    verifyNoConsecOk: (max) => `最大連続休み: ${max}試合`,
+    verifyNoConsecNg: (list) => `連続あり: ${list}`,
+    verifyOppBias: '対戦相手の偏り（目標: 最大3回）',
+    verifyOppOk: (min, max) => `実際: ${min}〜${max}回 （良好）`,
+    verifyOppNg: (min, max) => `実際: ${min}〜${max}回 （偏りあり）`,
+    verifyNoType3: '③男男vs女女なし',
+    verifyType3Detail: (t1, t2, t3) => `①同タイプ: ${t1}コート ②ミックス絡み: ${t2}コート ③男男vs女女: ${t3}コート`,
+    verifyGameCount: '各試合の人数整合性',
+    verifyGameCountOk: (total, r, w) => `全${total}試合で紅${r}人・白${w}人の整合性OK`,
+    // duplicate warning in core
+    dupWarning: (g, rNames, wNames, prevG) => `試合${g}: ${rNames} vs ${wNames} (試合${prevG}と重複)`,
+    // shareURL
+    shareSuccess: '✅ URLをクリップボードにコピーしました！\n\nこのURLを共有すると、同じ設定でページを開けます。',
+    sharePrompt: '以下のURLをコピーしてください:',
+    shareError: 'URL生成に失敗しました: ',
+    // QR
+    qrGenerating: 'QRコード生成中...',
+    qrGenError: 'QRコード生成エラー: ',
+    qrLibError: 'ライブラリ読み込みエラー',
+    // removePlayer
+    minPlayersAlert: '最低2人必要です',
+    // Excel
+    excelGenerating: '⏳ 生成中...',
+    excelTitle: '🏓 ピックルボールダブルス 紅白対抗戦スケジュール',
+    excelSheet: '紅白対抗戦スケジュール',
+    excelSubtitle: (total, courts, games, perPlayer, mode) => `${total}人 ｜ ${courts}面 ｜ ${games}試合 ｜ 全員${perPlayer}試合出場 ｜ 対戦モード: ${mode}`,
+    excelModeNames: { any:'制限なし', same:'同性対戦', mixed:'ミックス対戦', auto:'自動' },
+    excelGame: '試合', excelCourt: 'コート',
+    excelRed1: '紅①', excelRed2: '紅②', excelWhite1: '白①', excelWhite2: '白②',
+    excelRedRest: (i) => `紅\n休み${i}`,
+    excelWhiteRest: (i) => `白\n休み${i}`,
+    excelFilename: (games) => `ピックルボール紅白対抗戦_${games}試合.xlsx`,
+    excelError: 'Excel生成エラー: ',
+    excelJsError: 'ExcelJSの読み込みに失敗しました',
+    // loadQRCodeJS
+    qrJsError: 'QRコードライブラリの読み込みに失敗しました',
+    // updateTeamName fallback
+    teamNameFallbackRed: '紅組', teamNameFallbackWhite: '白組',
+    // reassignIds default name patterns
+    defaultNameRed: (id) => `紅${id}`,
+    defaultNameWhite: (id) => `白${id}`,
   },
   en: {
     pageTitle: '🏓 Pickleball Red vs White Schedule Generator',
@@ -2471,6 +2553,100 @@ const i18n = {
     genderM: '♂ Male', genderF: '♀ Female',
     modeNames: { any:'No Limit', same:'Same Gender', mixed:'Mixed Doubles', auto:'Auto (Mixed)' },
     defaultRedPrefix: 'R', defaultWhitePrefix: 'W',
+    // UI固定テキスト
+    loadingText: 'Generating schedule...',
+    panelStats: '📊 Stats',
+    panelSchedule: '📋 Schedule',
+    validationDefault: 'Enter settings above',
+    // モードノート
+    modeNoteAny: '',
+    modeNoteSame: '💡 Male pairs vs male pairs / Female pairs vs female pairs',
+    modeNoteMixed: '💡 Mixed pairs (M+F) vs mixed pairs',
+    modeNoteAuto: '💡 Combines same-gender and mixed doubles',
+    // validate メッセージ
+    errTeamSize: (r, w) => `❌ Red (${r}) and White (${w}) teams must have equal players`,
+    errCourtSize: (h) => `❌ Courts must be less than team size (${h})`,
+    errRestNotInt: '❌ Rest count per team is not an integer',
+    errSameImpossible: '❌ Same-gender mode is not achievable with current settings',
+    errSameDetail: (rM, rF, rest) => `  Red: M=${rM}, F=${rF}, rest=${rest} → playing M/F count not even`,
+    warnSameAdjust: '💡 Make M/F counts even, or adjust courts/players',
+    warnSameNeedBoth: '⚠️ Same-gender mode requires both male and female players',
+    errMixedImpossible: '❌ Mixed doubles mode is not achievable with current settings',
+    warnMixedEqual: (rM, rF, wM, wF) => `💡 Equal M/F needed (Red: M=${rM}, F=${rF} → make equal)`,
+    warnMixedUnequal: (rM, rF, wM, wF) => `⚠️ Mixed mode recommends equal M/F (Red: M${rM}F${rF}, White: M${wM}F${wF})`,
+    warnMixedNoRest: (label, gender, count) => `  ⚠️ ${label}'s ${gender} (${count} players) will play every game with no rest`,
+    warnMixedSolution: (label) => `  💡 Fix: ① Balance M/F in ${label} ② Switch to "No Limit" mode`,
+    btnSwitchAny: 'Switch to "No Limit"',
+    warnAutoOdd: '⚠️ Auto mode: M/F playing count not even — some games may use mixed doubles',
+    okAutoMode: '✓ Auto mode: MM vs MM / FF vs FF / MF vs MF combinations',
+    warnAutoUniform: (label, mCount, fCount) => `⚠️ ${label} M/F ratio (M${mCount}:F${fCount}) may cause uneven rest counts`,
+    warnAutoRestDetail: (avgM) => `  Male avg rest: ${avgM.toFixed(2)}/game (not integer) → up to 1 game difference`,
+    warnAutoSolution: (label) => `  💡 Fix: ① Balance M/F in ${label} ② Switch to "No Limit" mode`,
+    okTotal: (total, r, w) => `✓ Total: ${total} players (Red ${r}, White ${w})`,
+    okPerGame: (play, rest) => `✓ Per game: ${play} playing, ${rest} resting`,
+    okPerPlayer: (play, rest) => `✓ Per player: <b>${play} games</b>, rest: <b>${rest} games</b>`,
+    warnUneven: (play) => `⚠️ Per player: ${play.toFixed(1)} games (uneven)`,
+    warnSuggest: (list) => `→ Recommended game counts: ${list}`,
+    // generate エラー
+    errGenerateAuto: 'Could not generate schedule in Auto (Mixed) mode.\n\nPossible causes:\n· Very different M/F ratios between Red and White teams\n· e.g. Red: M4 F3, White: M2 F5\n\nSolutions:\n① Balance M/F counts (e.g. M4 F4 per team)\n② Switch to "No Limit" mode\n③ Change courts or game count',
+    errGenerateGeneral: 'Failed to generate schedule.\nIncrease "Max Partner Repeats" or change match mode.',
+    errPartnerAssign: (g) => `Game ${g}: partner assignment failed.\nIncrease "Max Partner Repeats" or change match mode.`,
+    errCourtAssign: (g) => `Game ${g}: court assignment failed.\nIncrease "Max Partner Repeats" or change match mode.`,
+    warnDuplicate: (count) => `⚠️ <b>${count} duplicate match(es)</b> (unavoidable given player count constraints)`,
+    warnSuggestGames: (list) => `💡 <b>Changing game count to ${list} may eliminate duplicates</b>`,
+    btnRegenerate: (t) => `Regenerate with ${t} games`,
+    // verify ラベル
+    verifyPlayCount: 'Equal play count',
+    verifyPlayOk: (n, play, rest) => `All ${n} players: ${play} games played, ${rest} rested`,
+    verifyPlayNg: (id, count) => `${id}: played ${count}`,
+    verifyPartnerLimit: (max) => `Max partner repeats: ${max}`,
+    verifyPartnerOk: (max) => `Max ${max}x (within limit)`,
+    verifyPartnerNg: (list) => `Violations: ${list}`,
+    verifyNoDup: 'No duplicate matches',
+    verifyNoDupOk: 'All matches are unique',
+    verifyNoDupNg: (list) => list,
+    verifyNoConsec: 'No consecutive rests',
+    verifyNoConsecOk: (max) => `Max consecutive rest: ${max} games`,
+    verifyNoConsecNg: (list) => `Consecutive rests: ${list}`,
+    verifyOppBias: 'Opponent variety (target: max 3x)',
+    verifyOppOk: (min, max) => `Actual: ${min}–${max}x (good)`,
+    verifyOppNg: (min, max) => `Actual: ${min}–${max}x (biased)`,
+    verifyNoType3: 'No ③ MM vs FF matches',
+    verifyType3Detail: (t1, t2, t3) => `① Same type: ${t1} ② Mixed: ${t2} ③ MM vs FF: ${t3}`,
+    verifyGameCount: 'Player count consistency',
+    verifyGameCountOk: (total, r, w) => `All ${total} games: Red ${r}, White ${w} — consistent`,
+    // duplicate warning in core
+    dupWarning: (g, rNames, wNames, prevG) => `Game ${g}: ${rNames} vs ${wNames} (duplicate of game ${prevG})`,
+    // shareURL
+    shareSuccess: '✅ URL copied to clipboard!\n\nShare this URL to open with the same settings.',
+    sharePrompt: 'Copy the URL below:',
+    shareError: 'Failed to generate URL: ',
+    // QR
+    qrGenerating: 'Generating QR code...',
+    qrGenError: 'QR code error: ',
+    qrLibError: 'Library load error',
+    // removePlayer
+    minPlayersAlert: 'At least 2 players required',
+    // Excel
+    excelGenerating: '⏳ Generating...',
+    excelTitle: '🏓 Pickleball Doubles Red vs White Schedule',
+    excelSheet: 'Red vs White Schedule',
+    excelSubtitle: (total, courts, games, perPlayer, mode) => `${total} players | ${courts} courts | ${games} games | ${perPlayer} games/player | Mode: ${mode}`,
+    excelModeNames: { any:'No Limit', same:'Same Gender', mixed:'Mixed Doubles', auto:'Auto' },
+    excelGame: 'Game', excelCourt: 'Court',
+    excelRed1: 'Red①', excelRed2: 'Red②', excelWhite1: 'White①', excelWhite2: 'White②',
+    excelRedRest: (i) => `Red\nRest${i}`,
+    excelWhiteRest: (i) => `White\nRest${i}`,
+    excelFilename: (games) => `Pickleball_RedWhite_${games}games.xlsx`,
+    excelError: 'Excel error: ',
+    excelJsError: 'Failed to load ExcelJS',
+    // loadQRCodeJS
+    qrJsError: 'Failed to load QR code library',
+    // updateTeamName fallback
+    teamNameFallbackRed: 'Red', teamNameFallbackWhite: 'White',
+    // reassignIds default name patterns
+    defaultNameRed: (id) => `R${id}`,
+    defaultNameWhite: (id) => `W${id}`,
   }
 };
 
@@ -2487,6 +2663,15 @@ function setLang(lang) {
   document.getElementById('lang-en').style.background = lang === 'en' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.1)';
   document.getElementById('lang-en').style.borderColor = lang === 'en' ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.3)';
   document.getElementById('lang-en').style.color = lang === 'en' ? 'white' : 'rgba(255,255,255,0.7)';
+
+  // loading / panel-header / validation-box
+  setText('loading-text', t.loadingText);
+  setText('panel-stats-header', t.panelStats);
+  setText('panel-schedule-header', t.panelSchedule);
+  const vbox = document.getElementById('validation-box');
+  if (vbox && vbox.textContent.trim() === i18n[lang === 'ja' ? 'en' : 'ja'].validationDefault) {
+    vbox.textContent = t.validationDefault;
+  }
 
   // ページタイトル
   document.getElementById('page-title').textContent = t.pageTitle;
@@ -2626,7 +2811,8 @@ function showQRCode() {
   const wrap = document.getElementById('qr-canvas-wrap');
   const urlText = document.getElementById('qr-url-text');
 
-  wrap.innerHTML = '<div style="color:#888;font-size:0.85rem;padding:20px">QRコード生成中...</div>';
+  const tl = i18n[currentLang];
+  wrap.innerHTML = `<div style="color:#888;font-size:0.85rem;padding:20px">${tl.qrGenerating}</div>`;
   urlText.textContent = url;
   modal.style.display = 'flex';
 
@@ -2641,11 +2827,11 @@ function showQRCode() {
       color: { dark: '#1F4E79', light: '#ffffff' }
     }, err => {
       if (err) {
-        wrap.innerHTML = `<div style="color:#cc0000;font-size:0.8rem">QRコード生成エラー: ${err.message}</div>`;
+        wrap.innerHTML = `<div style="color:#cc0000;font-size:0.8rem">${tl.qrGenError}${err.message}</div>`;
       }
     });
   }).catch(e => {
-    wrap.innerHTML = `<div style="color:#cc0000;font-size:0.8rem">ライブラリ読み込みエラー</div>`;
+    wrap.innerHTML = `<div style="color:#cc0000;font-size:0.8rem">${tl.qrLibError}</div>`;
   });
 }
 
@@ -2664,7 +2850,7 @@ function loadQRCodeJS() {
     const script = document.createElement('script');
     script.src = 'https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js';
     script.onload = resolve;
-    script.onerror = () => reject(new Error('QRコードライブラリの読み込みに失敗しました'));
+    script.onerror = () => reject(new Error(i18n[currentLang].qrJsError || 'QRコードライブラリの読み込みに失敗しました'));
     document.head.appendChild(script);
   });
 }
