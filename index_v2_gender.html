@@ -257,7 +257,56 @@
       padding: 10px 14px; color: #cc0000; font-size: 0.85rem; margin-top: 10px;
     }
 
-    @media (max-width: 900px) { .container { grid-template-columns: 1fr; } }
+    @media (max-width: 900px) {
+      .container { grid-template-columns: 1fr; }
+
+      /* ヘッダー */
+      header { padding: 14px 16px; }
+      header h1 { font-size: 1.1rem; }
+      header p { font-size: 0.78rem; }
+
+      /* パネル */
+      .panel-body { padding: 12px; }
+
+      /* 選手リスト：タップ領域を広げる */
+      .player-row { padding: 8px 10px; gap: 8px; }
+      .player-name-input { padding: 8px 10px; font-size: 0.9rem; }
+      .gender-select { padding: 8px 6px; font-size: 0.85rem; }
+      .del-btn { font-size: 1.2rem; padding: 6px; }
+      .add-btn { padding: 12px; font-size: 0.9rem; }
+
+      /* 対戦モードカード */
+      .mode-card { padding: 12px 8px; }
+      .mode-card .mode-icon { font-size: 1.6rem; }
+      .mode-card .mode-name { font-size: 0.88rem; }
+      .mode-card .mode-desc { font-size: 0.75rem; }
+
+      /* ボタン：タップ領域を確保 */
+      .btn { padding: 14px; font-size: 1rem; min-height: 48px; }
+
+      /* タブ：横スクロール対応 */
+      .tabs {
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding-bottom: 2px;
+      }
+      .tabs::-webkit-scrollbar { display: none; }
+      .tab-btn { padding: 10px 14px; font-size: 0.82rem; flex-shrink: 0; }
+
+      /* スケジュール表：フォントを少し大きく */
+      .schedule-table { font-size: 0.82rem; }
+      .schedule-table th, .schedule-table td { padding: 6px 7px; }
+
+      /* 統計カード */
+      .stat-card { min-width: 80px; padding: 8px 10px; }
+      .stat-card .val { font-size: 1.1rem; }
+      .stat-card .lbl { font-size: 0.7rem; }
+
+      /* フォーム */
+      .form-group input[type="number"] { padding: 11px; font-size: 1rem; }
+    }
 
     /* ===== 印刷対応 ===== */
     @media print {
@@ -297,7 +346,7 @@
 
 <header>
   <h1>🏓 ピックルボールダブルス 紅白対抗戦 スケジュール生成</h1>
-  <p>選手名・性別・対戦モードを設定して最適なスケジュールを自動生成 &nbsp;<span style="background:rgba(255,255,255,0.2);border-radius:4px;padding:2px 8px;font-size:0.75rem;font-weight:bold;letter-spacing:0.05em;">v1.2.0</span></p>
+  <p>選手名・性別・対戦モードを設定して最適なスケジュールを自動生成 &nbsp;<span style="background:rgba(255,255,255,0.2);border-radius:4px;padding:2px 8px;font-size:0.75rem;font-weight:bold;letter-spacing:0.05em;">v1.3.0</span></p>
 </header>
 
 <div class="container">
