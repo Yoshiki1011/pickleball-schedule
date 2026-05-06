@@ -1396,31 +1396,36 @@ function renderStats(d) {
     maxOpp = Math.max(maxOpp, d.opponentCount[r][w]);
     minOpp = Math.min(minOpp, d.opponentCount[r][w]);
   }
-  const modeNames = { any:'制限なし', same:'同性対戦', mixed:'ミックス対戦', auto:'自動（混合）' };
+  const t = i18n[currentLang];
+  const modeNames = t.modeNames;
+  const isEn = currentLang === 'en';
   document.getElementById('stats-bar').innerHTML = `
-    <div class="stat-card"><div class="val">${d.RED.length + d.WHITE.length}</div><div class="lbl">総人数</div></div>
-    <div class="stat-card"><div class="val">${d.courts}</div><div class="lbl">コート数</div></div>
-    <div class="stat-card"><div class="val">${d.totalGames}</div><div class="lbl">試合数</div></div>
-    <div class="stat-card"><div class="val">${d.gamesPerPlayer}</div><div class="lbl">1人出場数</div></div>
-    <div class="stat-card"><div class="val">${d.restPerPlayer}</div><div class="lbl">1人休み数</div></div>
-    <div class="stat-card"><div class="val">最大${maxP}回</div><div class="lbl">パートナー</div></div>
-    <div class="stat-card"><div class="val">${minOpp}〜${maxOpp}回</div><div class="lbl">対戦相手</div></div>
-    <div class="stat-card"><div class="val" style="font-size:0.9rem">${modeNames[d.mode]}</div><div class="lbl">対戦モード</div></div>
-    ${d._retryCount !== undefined ? `<div class="stat-card"><div class="val" style="font-size:0.9rem">${d._retryCount}回 / ${d._elapsedMs}ms</div><div class="lbl">リトライ / 生成時間</div></div>` : ''}
-    ${d.mode === 'any' || d.mode === 'auto' || d.mode === 'same' || d.mode === 'mixed' ? (() => { const t3 = countType3(d); const t1 = d.allCourts.flat().filter(([rp,wp]) => { const rg=rp.map(id=>d.playerMap[id].gender).sort().join(''); const wg=wp.map(id=>d.playerMap[id].gender).sort().join(''); return rg===wg; }).length; const t2 = d.allCourts.flat().length - t1 - t3; return `<div class="stat-card"><div class="val" style="font-size:0.75rem;color:${t3===0?'#28a745':'#fd7e14'}">①${t1} ②${t2} ③${t3}</div><div class="lbl">対戦タイプ</div></div>`; })() : ''}
+    <div class="stat-card"><div class="val">${d.RED.length + d.WHITE.length}</div><div class="lbl">${t.statTotal}</div></div>
+    <div class="stat-card"><div class="val">${d.courts}</div><div class="lbl">${t.statCourts}</div></div>
+    <div class="stat-card"><div class="val">${d.totalGames}</div><div class="lbl">${t.statGames}</div></div>
+    <div class="stat-card"><div class="val">${d.gamesPerPlayer}</div><div class="lbl">${t.statPlay}</div></div>
+    <div class="stat-card"><div class="val">${d.restPerPlayer}</div><div class="lbl">${t.statRest}</div></div>
+    <div class="stat-card"><div class="val">${isEn ? 'Max ' : '最大'}${maxP}${isEn ? 'x' : '回'}</div><div class="lbl">${t.statPartner}</div></div>
+    <div class="stat-card"><div class="val">${minOpp}${isEn ? '-' : '〜'}${maxOpp}${isEn ? 'x' : '回'}</div><div class="lbl">${t.statOpp}</div></div>
+    <div class="stat-card"><div class="val" style="font-size:0.9rem">${modeNames[d.mode]}</div><div class="lbl">${t.statMode}</div></div>
+    ${d._retryCount !== undefined ? `<div class="stat-card"><div class="val" style="font-size:0.9rem">${d._retryCount}${isEn ? 'x' : '回'} / ${d._elapsedMs}ms</div><div class="lbl">${t.statRetry}</div></div>` : ''}
+    ${d.mode === 'any' || d.mode === 'auto' || d.mode === 'same' || d.mode === 'mixed' ? (() => { const t3 = countType3(d); const t1 = d.allCourts.flat().filter(([rp,wp]) => { const rg=rp.map(id=>d.playerMap[id].gender).sort().join(''); const wg=wp.map(id=>d.playerMap[id].gender).sort().join(''); return rg===wg; }).length; const t2 = d.allCourts.flat().length - t1 - t3; return `<div class="stat-card"><div class="val" style="font-size:0.75rem;color:${t3===0?'#28a745':'#fd7e14'}">①${t1} ②${t2} ③${t3}</div><div class="lbl">${isEn ? 'Match Type' : '対戦タイプ'}</div></div>`; })() : ''}
   `;
 }
 
 function renderScheduleTable(d) {
   const { courts, allCourts, redRest, whiteRest, totalGames, playerMap } = d;
   const restPerSide = redRest[0].length;
+  const isEn = currentLang === 'en';
+  const redName = document.getElementById('red-team-name').value || (isEn ? 'Red' : '紅組');
+  const whiteName = document.getElementById('white-team-name').value || (isEn ? 'White' : '白組');
 
-  let html = '<thead><tr><th>試合</th><th>コート</th>';
-  html += '<th>紅①</th><th>紅②</th><th>vs</th><th>白①</th><th>白②</th>';
+  let html = `<thead><tr><th>${isEn ? 'Game' : '試合'}</th><th>${isEn ? 'Court' : 'コート'}</th>`;
+  html += `<th>${redName}①</th><th>${redName}②</th><th>vs</th><th>${whiteName}①</th><th>${whiteName}②</th>`;
   html += '<th class="sep-cell"></th>';
-  for (let i = 0; i < restPerSide; i++) html += `<th>紅休み${i+1}</th>`;
+  for (let i = 0; i < restPerSide; i++) html += `<th>${isEn ? `${redName} Rest${i+1}` : `紅休み${i+1}`}</th>`;
   html += '<th class="sep-cell"></th>';
-  for (let i = 0; i < restPerSide; i++) html += `<th>白休み${i+1}</th>`;
+  for (let i = 0; i < restPerSide; i++) html += `<th>${isEn ? `${whiteName} Rest${i+1}` : `白休み${i+1}`}</th>`;
   html += '</tr></thead><tbody>';
 
   for (let g = 0; g < totalGames; g++) {
@@ -1434,8 +1439,8 @@ function renderScheduleTable(d) {
       const rowClass = (c === courts - 1 && !isLast) ? ' class="game-separator"' : '';
 
       html += `<tr${rowClass}>`;
-      if (isFirst) html += `<td class="game-cell" rowspan="${courts}">試合<br>${g+1}</td>`;
-      html += `<td class="court-cell">コート${c+1}</td>`;
+      if (isFirst) html += `<td class="game-cell" rowspan="${courts}">${isEn ? 'Game' : '試合'}<br>${g+1}</td>`;
+      html += `<td class="court-cell">${isEn ? 'Court' : 'コート'}${c+1}</td>`;
 
       const pName = id => {
         const p = playerMap[id];
@@ -1463,8 +1468,19 @@ function renderScheduleTable(d) {
 function renderPlayerTable(d) {
   const { RED, WHITE, totalGames, redRest, whiteRest, playerMap } = d;
   const allIds = [...RED, ...WHITE];
+  const isEn = currentLang === 'en';
+  const redTeamName = document.getElementById('red-team-name').value || (isEn ? 'Red' : '紅組');
+  const whiteTeamName = document.getElementById('white-team-name').value || (isEn ? 'White' : '白組');
 
-  let html = '<thead><tr><th>名前</th><th>性別</th><th>組</th><th>出場</th><th>休み</th>';
+  const lbl = {
+    name: isEn ? 'Name' : '名前',
+    gender: isEn ? 'Gender' : '性別',
+    team: isEn ? 'Team' : '組',
+    play: isEn ? 'Games' : '出場',
+    rest: isEn ? 'Rest' : '休み',
+  };
+
+  let html = `<thead><tr><th>${lbl.name}</th><th>${lbl.gender}</th><th>${lbl.team}</th><th>${lbl.play}</th><th>${lbl.rest}</th>`;
   html += Array.from({length: totalGames}, (_, i) => `<th>${i+1}</th>`).join('');
   html += '</tr></thead><tbody>';
 
@@ -1477,13 +1493,19 @@ function renderPlayerTable(d) {
       if (rests.includes(id)) restGames.push(g + 1);
     }
     const playGames = Array.from({length: totalGames}, (_, i) => i + 1).filter(g => !restGames.includes(g));
+    const genderLabel = isEn
+      ? (p.gender === 'M' ? '<span class="g-m">♂ M</span>' : '<span class="g-f">♀ F</span>')
+      : (p.gender === 'M' ? '<span class="g-m">♂ 男</span>' : '<span class="g-f">♀ 女</span>');
+    const teamLabel = isRed ? redTeamName : whiteTeamName;
+    const playLabel = isEn ? `${playGames.length}` : `${playGames.length}試合`;
+    const restLabel = restGames.join(isEn ? ', ' : '・');
 
     html += `<tr>
       <td style="font-weight:bold;color:${isRed?'#CC0000':'#0000CC'}">${p.name}</td>
-      <td>${p.gender==='M'?'<span class="g-m">♂ 男</span>':'<span class="g-f">♀ 女</span>'}</td>
-      <td><span style="background:${isRed?'#FFCCCC':'#DDDDFF'};padding:2px 7px;border-radius:4px;font-size:0.75rem;color:${isRed?'#CC0000':'#0000CC'}">${isRed?'紅組':'白組'}</span></td>
-      <td>${playGames.length}試合</td>
-      <td style="color:#888">${restGames.join('・')}</td>`;
+      <td>${genderLabel}</td>
+      <td><span style="background:${isRed?'#FFCCCC':'#DDDDFF'};padding:2px 7px;border-radius:4px;font-size:0.75rem;color:${isRed?'#CC0000':'#0000CC'}">${teamLabel}</span></td>
+      <td>${playLabel}</td>
+      <td style="color:#888">${restLabel}</td>`;
     for (let g = 0; g < totalGames; g++) {
       const isRest = restGames.includes(g + 1);
       html += `<td><span class="game-dot ${isRest?'dot-rest':'dot-play'}">${g+1}</span></td>`;
@@ -1496,12 +1518,15 @@ function renderPlayerTable(d) {
 
 function renderPartnerTable(d) {
   const { RED, WHITE, partnerCount, playerMap } = d;
+  const isEn = currentLang === 'en';
+  const redTeamName = document.getElementById('red-team-name').value || (isEn ? 'Red' : '紅組');
+  const whiteTeamName = document.getElementById('white-team-name').value || (isEn ? 'White' : '白組');
   let out = '';
 
-  for (const [label, group] of [['紅組', RED], ['白組', WHITE]]) {
-    const color = label === '紅組' ? '#CC0000' : '#0000CC';
+  for (const [label, group] of [[redTeamName, RED], [whiteTeamName, WHITE]]) {
+    const color = group === RED ? '#CC0000' : '#0000CC';
     out += `<p style="font-weight:bold;color:${color};margin:8px 0 4px">${label}</p>`;
-    out += `<table class="player-table"><thead><tr><th>選手</th>`;
+    out += `<table class="player-table"><thead><tr><th>${isEn ? 'Player' : '選手'}</th>`;
     for (const id of group) out += `<th style="color:${color}">${playerMap[id].name}</th>`;
     out += '</tr></thead><tbody>';
     for (const a of group) {
@@ -1521,10 +1546,13 @@ function renderPartnerTable(d) {
 
 function renderOpponentTable(d) {
   const { RED, WHITE, opponentCount, playerMap } = d;
+  const isEn = currentLang === 'en';
+  const redTeamName = document.getElementById('red-team-name').value || (isEn ? 'Red' : '紅組');
+  const whiteTeamName = document.getElementById('white-team-name').value || (isEn ? 'White' : '白組');
   let maxOpp = 0;
   for (const r of RED) for (const w of WHITE) maxOpp = Math.max(maxOpp, opponentCount[r][w]);
 
-  let html = '<thead><tr><th>紅 \\ 白</th>';
+  let html = `<thead><tr><th>${redTeamName} \\ ${whiteTeamName}</th>`;
   for (const w of WHITE) html += `<th style="color:#0000CC">${playerMap[w].name}</th>`;
   html += '</tr></thead><tbody>';
   for (const r of RED) {
@@ -1549,22 +1577,28 @@ const scoreData = {}; // { 'g_c': { red: null, white: null } }
 
 function renderScoreTab(d) {
   const { allCourts, totalGames, courts, playerMap, RED, WHITE } = d;
-  const redName = document.getElementById('red-team-name').value || '紅組';
-  const whiteName = document.getElementById('white-team-name').value || '白組';
+  const isEn = currentLang === 'en';
+  const redName = document.getElementById('red-team-name').value || (isEn ? 'Red' : '紅組');
+  const whiteName = document.getElementById('white-team-name').value || (isEn ? 'White' : '白組');
+  const gameLabel = isEn ? 'Game' : '試合';
+  const courtLabel = isEn ? 'Court' : 'コート';
+  const scoreLabel = isEn ? 'Score' : 'スコア';
+  const resultLabel = isEn ? 'Result' : '結果';
+  const drawLabel = isEn ? 'Draw' : '引き分け';
 
   let html = `<div style="margin-bottom:12px;font-size:0.85rem;color:#555">
-    各試合のスコアを入力してください。勝敗が自動集計されます。
+    ${isEn ? 'Enter scores for each game. Win/loss will be tallied automatically.' : '各試合のスコアを入力してください。勝敗が自動集計されます。'}
   </div>`;
 
   // スコア入力テーブル
   html += `<table class="schedule-table" style="margin-bottom:20px">
     <thead><tr>
-      <th>試合</th><th>コート</th>
-      <th style="color:#FFCCCC">${redName}ペア</th>
-      <th>スコア</th>
-      <th style="color:#DDDDFF">${whiteName}ペア</th>
-      <th>スコア</th>
-      <th>結果</th>
+      <th>${gameLabel}</th><th>${courtLabel}</th>
+      <th style="color:#FFCCCC">${redName} ${isEn ? 'Pair' : 'ペア'}</th>
+      <th>${scoreLabel}</th>
+      <th style="color:#DDDDFF">${whiteName} ${isEn ? 'Pair' : 'ペア'}</th>
+      <th>${scoreLabel}</th>
+      <th>${resultLabel}</th>
     </tr></thead><tbody>`;
 
   for (let g = 0; g < totalGames; g++) {
@@ -1573,16 +1607,17 @@ function renderScoreTab(d) {
       const key = `${g}_${c}`;
       if (!scoreData[key]) scoreData[key] = { red: null, white: null };
       const rs = scoreData[key].red, ws = scoreData[key].white;
+      const winLabel = isEn ? 'Win' : '勝';
       const result = rs !== null && ws !== null
-        ? (rs > ws ? `<span style="color:#CC0000;font-weight:bold">${redName}勝</span>`
-          : rs < ws ? `<span style="color:#0000CC;font-weight:bold">${whiteName}勝</span>`
-          : '<span style="color:#888">引き分け</span>')
+        ? (rs > ws ? `<span style="color:#CC0000;font-weight:bold">${redName} ${winLabel}</span>`
+          : rs < ws ? `<span style="color:#0000CC;font-weight:bold">${whiteName} ${winLabel}</span>`
+          : `<span style="color:#888">${drawLabel}</span>`)
         : '-';
       const isFirst = c === 0;
       const rowClass = (c === courts - 1 && g < totalGames - 1) ? ' class="game-separator"' : '';
       html += `<tr${rowClass}>`;
-      if (isFirst) html += `<td class="game-cell" rowspan="${courts}">試合<br>${g+1}</td>`;
-      html += `<td class="court-cell">コート${c+1}</td>`;
+      if (isFirst) html += `<td class="game-cell" rowspan="${courts}">${gameLabel}<br>${g+1}</td>`;
+      html += `<td class="court-cell">${courtLabel}${c+1}</td>`;
       html += `<td class="red-cell" style="font-size:0.8rem">${rp.map(id=>playerMap[id].name).join(' + ')}</td>`;
       html += `<td><input type="number" min="0" max="99" value="${rs !== null ? rs : ''}"
         oninput="updateScore(${g},${c},'red',this.value)"
@@ -1610,13 +1645,16 @@ function updateScore(g, c, team, val) {
 
   // 結果セルを更新
   const d = currentScheduleData;
-  const redName = document.getElementById('red-team-name').value || '紅組';
-  const whiteName = document.getElementById('white-team-name').value || '白組';
+  const isEn = currentLang === 'en';
+  const redName = document.getElementById('red-team-name').value || (isEn ? 'Red' : '紅組');
+  const whiteName = document.getElementById('white-team-name').value || (isEn ? 'White' : '白組');
+  const winLabel = isEn ? 'Win' : '勝';
+  const drawLabel = isEn ? 'Draw' : '引き分け';
   const rs = scoreData[key].red, ws = scoreData[key].white;
   const result = rs !== null && ws !== null
-    ? (rs > ws ? `<span style="color:#CC0000;font-weight:bold">${redName}勝</span>`
-      : rs < ws ? `<span style="color:#0000CC;font-weight:bold">${whiteName}勝</span>`
-      : '<span style="color:#888">引き分け</span>')
+    ? (rs > ws ? `<span style="color:#CC0000;font-weight:bold">${redName} ${winLabel}</span>`
+      : rs < ws ? `<span style="color:#0000CC;font-weight:bold">${whiteName} ${winLabel}</span>`
+      : `<span style="color:#888">${drawLabel}</span>`)
     : '-';
   const cell = document.getElementById(`result_${g}_${c}`);
   if (cell) cell.innerHTML = result;
@@ -1628,8 +1666,9 @@ function updateScore(g, c, team, val) {
 
 function renderScoreSummary(d) {
   const { totalGames, courts } = d;
-  const redName = document.getElementById('red-team-name').value || '紅組';
-  const whiteName = document.getElementById('white-team-name').value || '白組';
+  const isEn = currentLang === 'en';
+  const redName = document.getElementById('red-team-name').value || (isEn ? 'Red' : '紅組');
+  const whiteName = document.getElementById('white-team-name').value || (isEn ? 'White' : '白組');
 
   let redWin = 0, whiteWin = 0, draw = 0, played = 0;
   for (let g = 0; g < totalGames; g++) {
@@ -1644,26 +1683,28 @@ function renderScoreSummary(d) {
     }
   }
   const total = totalGames * courts;
+  const winLabel = isEn ? 'Wins' : '勝利';
+  const drawLabel = isEn ? 'Draw' : '引き分け';
+  const summaryTitle = isEn ? `📊 Team Summary (${played}/${total} games entered)` : `📊 チーム集計（${played}/${total}試合入力済み）`;
+  const winRateLabel = isEn ? `Win rate: ${redName} ${(redWin/played*100).toFixed(0)}% / ${whiteName} ${(whiteWin/played*100).toFixed(0)}%` : `勝率: ${redName} ${(redWin/played*100).toFixed(0)}% / ${whiteName} ${(whiteWin/played*100).toFixed(0)}%`;
 
   return `<div id="score-summary">
-    <div style="font-weight:bold;font-size:0.9rem;margin-bottom:8px">📊 チーム集計（${played}/${total}試合入力済み）</div>
+    <div style="font-weight:bold;font-size:0.9rem;margin-bottom:8px">${summaryTitle}</div>
     <div style="display:flex;gap:12px;flex-wrap:wrap">
       <div style="background:#FFCCCC;border-radius:8px;padding:12px 20px;text-align:center;min-width:100px">
         <div style="font-size:1.8rem;font-weight:bold;color:#CC0000">${redWin}</div>
-        <div style="font-size:0.8rem;color:#880000">${redName} 勝利</div>
+        <div style="font-size:0.8rem;color:#880000">${redName} ${winLabel}</div>
       </div>
       <div style="background:#f0f4f8;border-radius:8px;padding:12px 20px;text-align:center;min-width:100px">
         <div style="font-size:1.8rem;font-weight:bold;color:#888">${draw}</div>
-        <div style="font-size:0.8rem;color:#666">引き分け</div>
+        <div style="font-size:0.8rem;color:#666">${drawLabel}</div>
       </div>
       <div style="background:#DDDDFF;border-radius:8px;padding:12px 20px;text-align:center;min-width:100px">
         <div style="font-size:1.8rem;font-weight:bold;color:#0000CC">${whiteWin}</div>
-        <div style="font-size:0.8rem;color:#000088">${whiteName} 勝利</div>
+        <div style="font-size:0.8rem;color:#000088">${whiteName} ${winLabel}</div>
       </div>
     </div>
-    ${played > 0 ? `<div style="margin-top:10px;font-size:0.85rem;color:#555">
-      勝率: ${redName} ${(redWin/played*100).toFixed(0)}% / ${whiteName} ${(whiteWin/played*100).toFixed(0)}%
-    </div>` : ''}
+    ${played > 0 ? `<div style="margin-top:10px;font-size:0.85rem;color:#555">${winRateLabel}</div>` : ''}
   </div>`;
 }
 
