@@ -1410,7 +1410,7 @@ function renderStats(d) {
     <div class="stat-card"><div class="val">${minOpp}${isEn ? '-' : '〜'}${maxOpp}${isEn ? 'x' : '回'}</div><div class="lbl">${t.statOpp}</div></div>
     <div class="stat-card"><div class="val" style="font-size:0.9rem">${modeNames[d.mode]}</div><div class="lbl">${t.statMode}</div></div>
     ${d._retryCount !== undefined ? `<div class="stat-card"><div class="val" style="font-size:0.9rem">${d._retryCount}${isEn ? 'x' : '回'} / ${d._elapsedMs}ms</div><div class="lbl">${t.statRetry}</div></div>` : ''}
-    ${d.mode === 'any' || d.mode === 'auto' || d.mode === 'same' || d.mode === 'mixed' ? (() => { const t3 = countType3(d); const t1 = d.allCourts.flat().filter(([rp,wp]) => { const rg=rp.map(id=>d.playerMap[id].gender).sort().join(''); const wg=wp.map(id=>d.playerMap[id].gender).sort().join(''); return rg===wg; }).length; const t2 = d.allCourts.flat().length - t1 - t3; return `<div class="stat-card"><div class="val" style="font-size:0.75rem;color:${t3===0?'#28a745':'#fd7e14'}">①${t1} ②${t2} ③${t3}</div><div class="lbl">${isEn ? 'Match Type' : '対戦タイプ'}</div></div>`; })() : ''}
+    ${d.mode === 'any' || d.mode === 'auto' || d.mode === 'same' || d.mode === 'mixed' ? (() => { const t3 = countType3(d); const t1 = d.allCourts.flat().filter(([rp,wp]) => { const rg=rp.map(id=>d.playerMap[id].gender).sort().join(''); const wg=wp.map(id=>d.playerMap[id].gender).sort().join(''); return rg===wg; }).length; const t2 = d.allCourts.flat().length - t1 - t3; return `<div class="stat-card"><div class="val" style="font-size:0.75rem;color:${t3===0?'#28a745':'#fd7e14'}">①${t1} ②${t2} ③${t3}</div><div class="lbl">${t.statMatchType || 'Match Type'}</div></div>`; })() : ''}
   `;
 }
 
@@ -2426,6 +2426,7 @@ const i18n = {
     statTotal: '総人数', statCourts: 'コート数', statGames: '試合数',
     statPlay: '1人出場数', statRest: '1人休み数', statPartner: 'パートナー',
     statOpp: '対戦相手', statMode: '対戦モード', statRetry: 'リトライ / 生成時間',
+    statMatchType: '対戦タイプ',
     qrTitle: '📱 QRコードで共有',
     qrSub: 'スマホでスキャンすると同じ設定で開けます',
     qrClose: '閉じる',
@@ -2462,6 +2463,7 @@ const i18n = {
     statTotal: 'Players', statCourts: 'Courts', statGames: 'Games',
     statPlay: 'Games/Player', statRest: 'Rest/Player', statPartner: 'Partner',
     statOpp: 'Opponent', statMode: 'Mode', statRetry: 'Retry / Time',
+    statMatchType: 'Match Type',
     qrTitle: '📱 Share via QR Code',
     qrSub: 'Scan with your phone to open with the same settings',
     qrClose: 'Close',
