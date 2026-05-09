@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🏓 ピックルボール 紅白対抗戦 スケジュール生成</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Hiragino Sans', 'Meiryo', sans-serif;
+      background: #f0f4f8;
+      color: #333;
+      min-height: 100vh;
+    }
+
+    /* ===== ヘッダー ===== */
+    header {
+      background: linear-gradient(135deg, #1F4E79, #2E75B6);
+      color: white;
+      padding: 24px 32px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    header h1 { font-size: 1.6rem; font-weight: bold; }
+    header p  { font-size: 0.9rem; opacity: 0.85; margin-top: 4px; }
+
+    /* ===== メインレイアウト ===== */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px 16px;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    /* ===== パネル共通 ===== */
+    .panel {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+    .panel-header {
+      background: #2E75B6;
+      color: white;
+      padding: 12px 20px;
+      font-weight: bold;
+      font-size: 0.95rem;
+    }
+    .panel-body { padding: 20px; }
+
+    /* ===== 設定フォーム ===== */
+    .form-group { margin-bottom: 18px; }
+    .form-group label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: bold;
+      color: #555;
+      margin-bottom: 6px;
+    }
+    .form-group input[type="number"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: border-color 0.2s;
+    }
+    .form-group input[type="number"]:focus {
+      outline: none;
+      border-color: #2E75B6;
+    }
+    .form-hint {
+      font-size: 0.78rem;
+      color: #888;
+      margin-top: 4px;
+    }
+
+    /* ===== 検証バッジ ===== */
+    #validation-box {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 16px;
+      font-size: 0.82rem;
+      line-height: 1.8;
+    }
+    .badge-ok  { color: #28a745; font-weight: bold; }
+    .badge-ng  { color: #dc3545; font-weight: bold; }
+    .badge-warn{ color: #fd7e14; font-weight: bold; }
+
+    /* ===== ボタン ===== */
+    .btn {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #1F4E79, #2E75B6);
+      color: white;
+    }
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-excel {
+      background: linear-gradient(135deg, #1D6F42, #2E9E5E);
+      color: white;
+      margin-top: 10px;
+    }
+    .btn-excel:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-excel:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    /* ===== 結果エリア ===== */
+    #result-area { display: none; }
+
+    /* ===== 統計バー ===== */
+    .stats-bar {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .stat-card {
+      flex: 1;
+      min-width: 100px;
+      background: #f0f4f8;
+      border-radius: 8px;
+      padding: 10px 14px;
+      text-align: center;
+    }
+    .stat-card .val { font-size: 1.4rem; font-weight: bold; color: #1F4E79; }
+    .stat-card .lbl { font-size: 0.75rem; color: #666; margin-top: 2px; }
+
+    /* ===== 試合テーブル ===== */
+    .schedule-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+    .schedule-table th {
+      background: #2F2F2F;
+      color: white;
+      padding: 8px 10px;
+      text-align: center;
+      font-size: 0.8rem;
+    }
+    .schedule-table td {
+      padding: 7px 10px;
+      text-align: center;
+      border-bottom: 1px solid #eee;
+    }
+    .game-cell {
+      background: #1F4E79;
+      color: white;
+      font-weight: bold;
+      font-size: 0.9rem;
+    }
+    .court-cell {
+      background: #FFF2CC;
+      font-weight: bold;
+      font-size: 0.82rem;
+      color: #555500;
+    }
+    .red-cell {
+      background: #FFCCCC;
+      color: #CC0000;
+      font-weight: bold;
+    }
+    .white-cell {
+      background: #DDDDFF;
+      color: #0000CC;
+      font-weight: bold;
+    }
+    .vs-cell { color: #999; font-size: 0.8rem; }
+    .rest-red { background: #FF9999; color: #880000; font-weight: bold; font-size: 0.82rem; }
+    .rest-white { background: #9999FF; color: #000088; font-weight: bold; font-size: 0.82rem; }
+    .sep-cell { background: #CCCCCC; width: 8px; padding: 0; }
+
+    .game-separator td { border-bottom: 2px solid #888; }
+
+    /* ===== 個人別タブ ===== */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 16px;
+      border-bottom: 2px solid #ddd;
+    }
+    .tab-btn {
+      padding: 8px 16px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-size: 0.88rem;
+      color: #666;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: all 0.2s;
+    }
+    .tab-btn.active {
+      color: #1F4E79;
+      border-bottom-color: #1F4E79;
+      font-weight: bold;
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* ===== 個人別テーブル ===== */
+    .player-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+    .player-table th {
+      background: #f0f4f8;
+      padding: 7px 10px;
+      text-align: center;
+      font-size: 0.78rem;
+      color: #555;
+      border-bottom: 2px solid #ddd;
+    }
+    .player-table td {
+      padding: 6px 10px;
+      text-align: center;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .player-table tr:hover td { background: #f8f9fa; }
+    .game-dot {
+      display: inline-block;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      line-height: 22px;
+      font-size: 0.72rem;
+      font-weight: bold;
+      margin: 1px;
+    }
+    .dot-play { background: #2E75B6; color: white; }
+    .dot-rest { background: #ddd; color: #999; }
+
+    /* ===== ローディング ===== */
+    #loading {
+      display: none;
+      text-align: center;
+      padding: 40px;
+      color: #666;
+    }
+    .spinner {
+      width: 40px; height: 40px;
+      border: 4px solid #ddd;
+      border-top-color: #2E75B6;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ===== エラー ===== */
+    .error-box {
+      background: #fff3f3;
+      border: 1px solid #ffcccc;
+      border-radius: 8px;
+      padding: 12px 16px;
+      color: #cc0000;
+      font-size: 0.88rem;
+      margin-top: 12px;
+    }
+
+    @media (max-width: 768px) {
+      .container { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🏓 ピックルボールダブルス 紅白対抗戦 スケジュール生成</h1>
+  <p>人数・コート数・試合数を入力するだけで、最適なスケジュールを自動生成します</p>
+</header>
+
+<div class="container">
+
+  <!-- ===== 左パネル：設定 ===== -->
+  <div>
+    <div class="panel">
+      <div class="panel-header">⚙️ 設定</div>
+      <div class="panel-body">
+
+        <div class="form-group">
+          <label>片組の人数（紅組 = 白組）</label>
+          <input type="number" id="half" value="8" min="3" max="20">
+          <div class="form-hint">紅組・白組それぞれの人数（合計の半分）</div>
+        </div>
+
+        <div class="form-group">
+          <label>コート数（面数）</label>
+          <input type="number" id="courts" value="3" min="1" max="10">
+          <div class="form-hint">同時に使用するコート数</div>
+        </div>
+
+        <div class="form-group">
+          <label>試合数</label>
+          <input type="number" id="totalGames" value="12" min="1" max="30">
+          <div class="form-hint">全体の試合数（ラウンド数）</div>
+        </div>
+
+        <div id="validation-box">パラメータを入力してください</div>
+
+        <button class="btn btn-primary" id="generate-btn" onclick="generate()">
+          🎯 スケジュール生成
+        </button>
+
+        <button class="btn btn-excel" id="excel-btn" onclick="downloadExcel()" disabled>
+          📥 Excelダウンロード (.xlsx)
+        </button>
+
+        <div id="error-msg"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 右パネル：結果 ===== -->
+  <div>
+    <div id="loading">
+      <div class="spinner"></div>
+      <div>スケジュール生成中...</div>
+    </div>
+
+    <div id="result-area">
+      <!-- 統計 -->
+      <div class="panel" style="margin-bottom:20px">
+        <div class="panel-header">📊 統計</div>
+        <div class="panel-body">
+          <div class="stats-bar" id="stats-bar"></div>
+        </div>
+      </div>
+
+      <!-- タブ -->
+      <div class="panel">
+        <div class="panel-header">📋 スケジュール</div>
+        <div class="panel-body">
+          <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('schedule')">試合一覧</button>
+            <button class="tab-btn" onclick="switchTab('players')">個人別</button>
+            <button class="tab-btn" onclick="switchTab('partners')">パートナー回数</button>
+            <button class="tab-btn" onclick="switchTab('opponents')">対戦相手回数</button>
+          </div>
+
+          <div id="tab-schedule" class="tab-content active">
+            <div style="overflow-x:auto">
+              <table class="schedule-table" id="schedule-table"></table>
+            </div>
+          </div>
+
+          <div id="tab-players" class="tab-content">
+            <table class="player-table" id="player-table"></table>
+          </div>
+
+          <div id="tab-partners" class="tab-content">
+            <div style="overflow-x:auto">
+              <table class="player-table" id="partner-table"></table>
+            </div>
+          </div>
+
+          <div id="tab-opponents" class="tab-content">
+            <div style="overflow-x:auto">
+              <table class="player-table" id="opponent-table"></table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let currentScheduleData = null;
+
+document.querySelectorAll('input').forEach(el => {
+  el.addEventListener('input', validateParams);
+});
+validateParams();
+
+function validateParams() {
+  const half       = parseInt(document.getElementById('half').value) || 0;
+  const courts     = parseInt(document.getElementById('courts').value) || 0;
+  const totalGames = parseInt(document.getElementById('totalGames').value) || 0;
+
+  const playersPerGame = courts * 4;
+  const totalPlayers   = half * 2;
+  const restPerGame    = totalPlayers - playersPerGame;
+  const restPerSide    = restPerGame / 2;
+  const gamesPerPlayer = totalPlayers > 0 ? (totalGames * playersPerGame) / totalPlayers : 0;
+  const restPerPlayer  = totalGames - gamesPerPlayer;
+
+  let html = '';
+  let ok = true;
+
+  if (courts >= half) {
+    html += `<span class="badge-ng">❌ コート数は片組人数より少なくしてください</span><br>`;
+    ok = false;
+  }
+  if (restPerGame < 0) {
+    html += `<span class="badge-ng">❌ コート数が多すぎます</span><br>`;
+    ok = false;
+  }
+  if (restPerSide !== Math.floor(restPerSide)) {
+    html += `<span class="badge-ng">❌ 片組の休み人数が整数になりません</span><br>`;
+    ok = false;
+  }
+
+  if (ok) {
+    const isInt = Number.isInteger(gamesPerPlayer);
+    html += `<span class="badge-ok">✓</span> 総人数: ${totalPlayers}人（紅${half}人・白${half}人）<br>`;
+    html += `<span class="badge-ok">✓</span> 1試合あたり出場: ${playersPerGame}人、休み: ${restPerGame}人<br>`;
+    if (isInt) {
+      html += `<span class="badge-ok">✓</span> 1人あたり出場: <b>${gamesPerPlayer}試合</b>、休み: <b>${restPerPlayer}試合</b><br>`;
+    } else {
+      html += `<span class="badge-warn">⚠️</span> 1人あたり出場: ${gamesPerPlayer.toFixed(1)}試合（不均等）<br>`;
+      let suggestions = [];
+      for (let t = Math.max(1, totalGames - 5); t <= totalGames + 5; t++) {
+        if (t > 0 && (t * playersPerGame) % totalPlayers === 0) suggestions.push(t);
+      }
+      if (suggestions.length > 0) {
+        html += `<span class="badge-warn">→ 試合数 ${suggestions.join(' or ')} を推奨</span><br>`;
+      }
+    }
+  }
+
+  document.getElementById('validation-box').innerHTML = html;
+  document.getElementById('generate-btn').disabled = !ok;
+}
+
+function generate() {
+  const half       = parseInt(document.getElementById('half').value);
+  const courts     = parseInt(document.getElementById('courts').value);
+  const totalGames = parseInt(document.getElementById('totalGames').value);
+
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('result-area').style.display = 'none';
+  document.getElementById('error-msg').innerHTML = '';
+
+  setTimeout(() => {
+    try {
+      const data = generateSchedule(half, courts, totalGames);
+      currentScheduleData = data;
+      renderResults(data);
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('result-area').style.display = 'block';
+      document.getElementById('excel-btn').disabled = false;
+    } catch(e) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('error-msg').innerHTML =
+        `<div class="error-box">❌ エラー: ${e.message}</div>`;
+    }
+  }, 50);
+}
+
+function generateSchedule(half, courts, totalGames) {
+  const RED   = Array.from({length: half}, (_, i) => i + 1);
+  const WHITE = Array.from({length: half}, (_, i) => i + half + 1);
+  const totalPlayers   = half * 2;
+  const playersPerGame = courts * 4;
+  const restPerSide    = (totalPlayers - playersPerGame) / 2;
+  const gamesPerPlayer = (totalGames * playersPerGame) / totalPlayers;
+  const restPerPlayer  = totalGames - gamesPerPlayer;
+
+  const redRest   = generateRestSchedule(RED,   totalGames, restPerSide);
+  const whiteRest = generateRestSchedule(WHITE, totalGames, restPerSide);
+
+  let partnerCount  = initMatrix([...RED, ...WHITE]);
+  let opponentCount = initMatrix([...RED, ...WHITE]);
+
+  let allCourts = [];
+
+  for (let g = 0; g < totalGames; g++) {
+    const redPlaying   = RED.filter(p   => !redRest[g].includes(p));
+    const whitePlaying = WHITE.filter(p => !whiteRest[g].includes(p));
+
+    const redPairs   = assignPartners(redPlaying,   partnerCount);
+    const whitePairs = assignPartners(whitePlaying, partnerCount);
+
+    if (!redPairs || !whitePairs) {
+      throw new Error(`試合${g+1}でパートナー割り当てに失敗しました。試合数やコート数を調整してください。`);
+    }
+
+    const gameCourts = assignCourts(redPairs, whitePairs, opponentCount);
+
+    for (const [rp, wp] of gameCourts) {
+      partnerCount[rp[0]][rp[1]]++;
+      partnerCount[rp[1]][rp[0]]++;
+      partnerCount[wp[0]][wp[1]]++;
+      partnerCount[wp[1]][wp[0]]++;
+      for (const r of rp) for (const w of wp) {
+        opponentCount[r][w]++;
+        opponentCount[w][r]++;
+      }
+    }
+
+    allCourts.push(gameCourts);
+  }
+
+  return {
+    half, courts, totalGames, gamesPerPlayer, restPerPlayer,
+    RED, WHITE,
+    redRest, whiteRest,
+    allCourts, partnerCount, opponentCount
+  };
+}
+
+function initMatrix(players) {
+  const m = {};
+  for (const p of players) {
+    m[p] = {};
+    for (const q of players) m[p][q] = 0;
+  }
+  return m;
+}
+
+function generateRestSchedule(players, totalGames, restPerGame) {
+  const schedule = Array.from({length: totalGames}, () => []);
+  const restCounts = {}, lastRest = {};
+  for (const p of players) { restCounts[p] = 0; lastRest[p] = -999; }
+
+  for (let g = 0; g < totalGames; g++) {
+    const sorted = [...players].sort((a, b) => {
+      if (restCounts[a] !== restCounts[b]) return restCounts[a] - restCounts[b];
+      return lastRest[a] - lastRest[b];
+    });
+    const resting = sorted.slice(0, restPerGame);
+    schedule[g] = resting;
+    for (const p of resting) { restCounts[p]++; lastRest[p] = g; }
+  }
+  return schedule;
+}
+
+function assignPartners(players, partnerCounts) {
+  let bestPairs = null, bestScore = Infinity;
+
+  function bt(remaining, pairs) {
+    if (remaining.length === 0) {
+      let score = 0, maxP = 0;
+      for (const [a, b] of pairs) {
+        score += partnerCounts[a][b];
+        maxP = Math.max(maxP, partnerCounts[a][b]);
+      }
+      const cs = maxP * 1000 + score;
+      if (cs < bestScore) { bestScore = cs; bestPairs = pairs.map(p => [...p]); }
+      return;
+    }
+    const a = remaining[0];
+    const rest = remaining.slice(1);
+    for (let i = 0; i < rest.length; i++) {
+      const b = rest[i];
+      if (partnerCounts[a][b] >= 2) continue;
+      bt(rest.filter((_, idx) => idx !== i), [...pairs, [a, b]]);
+    }
+  }
+
+  bt(players, []);
+  return bestPairs;
+}
+
+function permutations(arr) {
+  if (arr.length <= 1) return [arr];
+  const result = [];
+  for (let i = 0; i < arr.length; i++) {
+    const rest = arr.filter((_, idx) => idx !== i);
+    for (const perm of permutations(rest)) result.push([arr[i], ...perm]);
+  }
+  return result;
+}
+
+function assignCourts(redPairs, whitePairs, opponentCount) {
+  const n = redPairs.length;
+  const perms = permutations(Array.from({length: n}, (_, i) => i));
+  let bestPerm = null, bestScore = Infinity;
+
+  for (const perm of perms) {
+    let score = 0, maxOpp = 0;
+    for (let i = 0; i < n; i++) {
+      for (const r of redPairs[i]) for (const w of whitePairs[perm[i]]) {
+        score += opponentCount[r][w];
+        maxOpp = Math.max(maxOpp, opponentCount[r][w]);
+      }
+    }
+    const cs = maxOpp * 1000 + score;
+    if (cs < bestScore) { bestScore = cs; bestPerm = perm; }
+  }
+
+  return bestPerm.map((wi, ri) => [redPairs[ri], whitePairs[wi]]);
+}
+
+function renderResults(d) {
+  renderStats(d);
+  renderScheduleTable(d);
+  renderPlayerTable(d);
+  renderPartnerTable(d);
+  renderOpponentTable(d);
+}
+
+function renderStats(d) {
+  let maxP = 0, minOpp = 999, maxOpp = 0;
+  for (const p of d.RED) for (const q of d.RED) if (q !== p) maxP = Math.max(maxP, d.partnerCount[p][q]);
+  for (const r of d.RED) for (const w of d.WHITE) {
+    maxOpp = Math.max(maxOpp, d.opponentCount[r][w]);
+    minOpp = Math.min(minOpp, d.opponentCount[r][w]);
+  }
+
+  document.getElementById('stats-bar').innerHTML = `
+    <div class="stat-card"><div class="val">${d.half * 2}</div><div class="lbl">総人数</div></div>
+    <div class="stat-card"><div class="val">${d.courts}</div><div class="lbl">コート数</div></div>
+    <div class="stat-card"><div class="val">${d.totalGames}</div><div class="lbl">試合数</div></div>
+    <div class="stat-card"><div class="val">${d.gamesPerPlayer}</div><div class="lbl">1人出場数</div></div>
+    <div class="stat-card"><div class="val">${d.restPerPlayer}</div><div class="lbl">1人休み数</div></div>
+    <div class="stat-card"><div class="val">最大${maxP}回</div><div class="lbl">パートナー</div></div>
+    <div class="stat-card"><div class="val">${minOpp}〜${maxOpp}回</div><div class="lbl">対戦相手</div></div>
+  `;
+}
+
+function renderScheduleTable(d) {
+  const { courts, allCourts, redRest, whiteRest, totalGames } = d;
+  const restPerSide = redRest[0].length;
+
+  let html = '<thead><tr>';
+  html += '<th>試合</th><th>コート</th>';
+  for (let c = 0; c < courts; c++) html += `<th>紅①</th><th>紅②</th><th>vs</th><th>白①</th><th>白②</th>`;
+  html += '<th class="sep-cell"></th>';
+  for (let i = 0; i < restPerSide; i++) html += `<th>紅休み${i+1}</th>`;
+  html += '<th class="sep-cell"></th>';
+  for (let i = 0; i < restPerSide; i++) html += `<th>白休み${i+1}</th>`;
+  html += '</tr></thead><tbody>';
+
+  for (let g = 0; g < totalGames; g++) {
+    const gameCourts = allCourts[g];
+    const rr = redRest[g], wr = whiteRest[g];
+    const isLast = (g === totalGames - 1);
+
+    for (let c = 0; c < courts; c++) {
+      const [rp, wp] = gameCourts[c];
+      const isFirst = (c === 0);
+      const rowClass = (c === courts - 1 && !isLast) ? ' class="game-separator"' : '';
+
+      html += `<tr${rowClass}>`;
+      if (isFirst) {
+        html += `<td class="game-cell" rowspan="${courts}">試合<br>${g+1}</td>`;
+      }
+      html += `<td class="court-cell">コート${c+1}</td>`;
+      html += `<td class="red-cell">紅${rp[0]}</td><td class="red-cell">紅${rp[1]}</td>`;
+      html += `<td class="vs-cell">vs</td>`;
+      html += `<td class="white-cell">白${wp[0]}</td><td class="white-cell">白${wp[1]}</td>`;
+      html += `<td class="sep-cell"></td>`;
+      if (isFirst) {
+        for (const p of rr) html += `<td class="rest-red" rowspan="${courts}">紅${p}</td>`;
+        html += `<td class="sep-cell" rowspan="${courts}"></td>`;
+        for (const p of wr) html += `<td class="rest-white" rowspan="${courts}">白${p}</td>`;
+      }
+      html += '</tr>';
+    }
+  }
+
+  html += '</tbody>';
+  document.getElementById('schedule-table').innerHTML = html;
+}
+
+function renderPlayerTable(d) {
+  const { RED, WHITE, totalGames, redRest, whiteRest, gamesPerPlayer } = d;
+  const allPlayers = [...RED, ...WHITE];
+
+  let html = '<thead><tr><th>番号</th><th>組</th><th>出場試合</th><th>休み試合</th>';
+  html += Array.from({length: totalGames}, (_, i) => `<th>${i+1}</th>`).join('');
+  html += '</tr></thead><tbody>';
+
+  for (const p of allPlayers) {
+    const isRed = RED.includes(p);
+    const restGames = [];
+    for (let g = 0; g < totalGames; g++) {
+      const rests = isRed ? redRest[g] : whiteRest[g];
+      if (rests.includes(p)) restGames.push(g + 1);
+    }
+    const playGames = Array.from({length: totalGames}, (_, i) => i + 1).filter(g => !restGames.includes(g));
+
+    html += `<tr>`;
+    html += `<td style="font-weight:bold;color:${isRed?'#CC0000':'#0000CC'}">${isRed?'紅':'白'}${p}</td>`;
+    html += `<td><span style="background:${isRed?'#FFCCCC':'#DDDDFF'};padding:2px 8px;border-radius:4px;font-size:0.8rem;color:${isRed?'#CC0000':'#0000CC'}">${isRed?'紅組':'白組'}</span></td>`;
+    html += `<td>${playGames.join('・')}</td>`;
+    html += `<td style="color:#888">${restGames.join('・')}</td>`;
+    for (let g = 0; g < totalGames; g++) {
+      const isRest = restGames.includes(g + 1);
+      html += `<td><span class="game-dot ${isRest?'dot-rest':'dot-play'}">${g+1}</span></td>`;
+    }
+    html += '</tr>';
+  }
+
+  html += '</tbody>';
+  document.getElementById('player-table').innerHTML = html;
+}
+
+function renderPartnerTable(d) {
+  const { RED, WHITE, partnerCount } = d;
+
+  let html = '<thead><tr><th>選手</th>';
+  for (const p of RED) html += `<th style="color:#CC0000">紅${p}</th>`;
+  html += '</tr></thead><tbody>';
+  for (const p of RED) {
+    html += `<tr><td style="font-weight:bold;color:#CC0000">紅${p}</td>`;
+    for (const q of RED) {
+      if (p === q) { html += '<td style="background:#eee">-</td>'; continue; }
+      const cnt = partnerCount[p][q];
+      const bg = cnt === 0 ? '#f8f8f8' : cnt === 1 ? '#fff3cd' : '#ffd6d6';
+      html += `<td style="background:${bg};font-weight:${cnt>0?'bold':'normal'}">${cnt}</td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</tbody>';
+  document.getElementById('partner-table').innerHTML = html;
+
+  let html2 = '<thead><tr><th>選手</th>';
+  for (const p of WHITE) html2 += `<th style="color:#0000CC">白${p}</th>`;
+  html2 += '</tr></thead><tbody>';
+  for (const p of WHITE) {
+    html2 += `<tr><td style="font-weight:bold;color:#0000CC">白${p}</td>`;
+    for (const q of WHITE) {
+      if (p === q) { html2 += '<td style="background:#eee">-</td>'; continue; }
+      const cnt = partnerCount[p][q];
+      const bg = cnt === 0 ? '#f8f8f8' : cnt === 1 ? '#ddeeff' : '#bbccff';
+      html2 += `<td style="background:${bg};font-weight:${cnt>0?'bold':'normal'}">${cnt}</td>`;
+    }
+    html2 += '</tr>';
+  }
+  html2 += '</tbody>';
+  document.getElementById('partner-table').innerHTML += '<br><table class="player-table">' + html2.replace('<table class="player-table">', '');
+}
+
+function renderOpponentTable(d) {
+  const { RED, WHITE, opponentCount } = d;
+
+  let html = '<thead><tr><th>紅 \\ 白</th>';
+  for (const w of WHITE) html += `<th style="color:#0000CC">白${w}</th>`;
+  html += '</tr></thead><tbody>';
+
+  let maxOpp = 0;
+  for (const r of RED) for (const w of WHITE) maxOpp = Math.max(maxOpp, opponentCount[r][w]);
+
+  for (const r of RED) {
+    html += `<tr><td style="font-weight:bold;color:#CC0000">紅${r}</td>`;
+    for (const w of WHITE) {
+      const cnt = opponentCount[r][w];
+      const ratio = maxOpp > 0 ? cnt / maxOpp : 0;
+      const g = Math.round(255 - ratio * 80);
+      const bg = cnt === 0 ? '#f8f8f8' : `rgb(255,${g},${g})`;
+      html += `<td style="background:${bg};font-weight:${cnt>0?'bold':'normal'}">${cnt}</td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</tbody>';
+  document.getElementById('opponent-table').innerHTML = html;
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+    const names = ['schedule', 'players', 'partners', 'opponents'];
+    btn.classList.toggle('active', names[i] === name);
+  });
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.getElementById(`tab-${name}`).classList.add('active');
+}
+
+async function downloadExcel() {
+  if (!currentScheduleData) return;
+  const d = currentScheduleData;
+
+  const btn = document.getElementById('excel-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ 生成中...';
+
+  try {
+    await loadExcelJS();
+
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('紅白対抗戦スケジュール');
+
+    const RED_LIGHT   = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFCCCC' } };
+    const WHITE_LIGHT = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDDDDFF' } };
+    const REST_RED    = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF9999' } };
+    const REST_WHT    = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF9999FF' } };
+    const HEADER_BG   = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2F2F2F' } };
+    const COURT_BG    = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF2CC' } };
+    const GAME_BG     = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F4E79' } };
+    const TITLE_BG    = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F4E79' } };
+    const SUB_BG      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2E75B6' } };
+    const SEP_BG      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFCCCCCC' } };
+    const VS_BG       = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2F2F2' } };
+
+    const thin = { style: 'thin', color: { argb: 'FFAAAAAA' } };
+    const med  = { style: 'medium', color: { argb: 'FF555555' } };
+    const thinBorder = { top: thin, left: thin, bottom: thin, right: thin };
+    const center = { horizontal: 'center', vertical: 'middle', wrapText: true };
+
+    const restPerSide = d.redRest[0].length;
+    const COURTS = d.courts;
+    const totalCols = 2 + 5 * COURTS + 1 + restPerSide + 1 + restPerSide;
+
+    function colLetter(n) {
+      let s = '';
+      while (n > 0) { s = String.fromCharCode(64 + (n % 26 || 26)) + s; n = Math.floor((n - 1) / 26); }
+      return s;
+    }
+
+    ws.mergeCells(`A1:${colLetter(totalCols)}1`);
+    const t1 = ws.getCell('A1');
+    t1.value = '🏓 ピックルボールダブルス 紅白対抗戦スケジュール';
+    t1.fill = TITLE_BG; t1.font = { bold: true, size: 16, color: { argb: 'FFFFFFFF' } };
+    t1.alignment = center; ws.getRow(1).height = 36;
+
+    ws.mergeCells(`A2:${colLetter(totalCols)}2`);
+    const t2 = ws.getCell('A2');
+    t2.value = `${d.half*2}人（紅組1〜${d.half}番・白組${d.half+1}〜${d.half*2}番）｜ ${COURTS}面 ｜ ${d.totalGames}試合 ｜ 全員${d.gamesPerPlayer}試合出場・${d.restPerPlayer}試合休み`;
+    t2.fill = SUB_BG; t2.font = { bold: true, size: 10, color: { argb: 'FFFFFFFF' } };
+    t2.alignment = center; ws.getRow(2).height = 20;
+
+    let col = 1;
+    function hdr(r, c, v) {
+      const cell = ws.getCell(r, c);
+      cell.value = v; cell.fill = HEADER_BG;
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 9 };
+      cell.alignment = center; cell.border = thinBorder;
+    }
+    hdr(3, col++, '試合'); hdr(3, col++, 'コート');
+    for (let ct = 0; ct < COURTS; ct++) {
+      hdr(3, col++, '紅①'); hdr(3, col++, '紅②'); hdr(3, col++, 'vs');
+      hdr(3, col++, '白①'); hdr(3, col++, '白②');
+    }
+    hdr(3, col++, '');
+    for (let i = 0; i < restPerSide; i++) hdr(3, col++, `紅\n休み${i+1}`);
+    hdr(3, col++, '');
+    for (let i = 0; i < restPerSide; i++) hdr(3, col++, `白\n休み${i+1}`);
+    ws.getRow(3).height = 28;
+
+    let currentRow = 4;
+
+    for (let g = 0; g < d.totalGames; g++) {
+      const gameCourts = d.allCourts[g];
+      const rr = d.redRest[g], wr = d.whiteRest[g];
+
+      for (let ci = 0; ci < COURTS; ci++) {
+        const r = currentRow + ci;
+        const [rp, wp] = gameCourts[ci];
+        const isFirst = ci === 0;
+        let c = 1;
+
+        function setCell(row, col, val, fill, fontColor, bold, size) {
+          const cell = ws.getCell(row, col);
+          cell.value = val; cell.fill = fill;
+          cell.font = { color: { argb: fontColor }, bold: bold || false, size: size || 10 };
+          cell.alignment = center; cell.border = thinBorder;
+        }
+
+        setCell(r, c++, isFirst ? `試合\n${g+1}` : '', GAME_BG, 'FFFFFFFF', true, 11);
+        setCell(r, c++, `コート${ci+1}`, COURT_BG, 'FF555500', true, 9);
+        setCell(r, c++, `紅${rp[0]}`, RED_LIGHT, 'FFCC0000', true, 12);
+        setCell(r, c++, `紅${rp[1]}`, RED_LIGHT, 'FFCC0000', true, 12);
+        setCell(r, c++, 'vs', VS_BG, 'FF888888', false, 9);
+        setCell(r, c++, `白${wp[0]}`, WHITE_LIGHT, 'FF0000CC', true, 12);
+        setCell(r, c++, `白${wp[1]}`, WHITE_LIGHT, 'FF0000CC', true, 12);
+        setCell(r, c++, '', SEP_BG, 'FF000000', false, 9);
+        for (let j = 0; j < restPerSide; j++) setCell(r, c++, isFirst ? `紅${rr[j]}` : '', REST_RED, 'FF880000', true, 11);
+        setCell(r, c++, '', SEP_BG, 'FF000000', false, 9);
+        for (let j = 0; j < restPerSide; j++) setCell(r, c++, isFirst ? `白${wr[j]}` : '', REST_WHT, 'FF000088', true, 11);
+
+        ws.getRow(r).height = 24;
+      }
+
+      ws.mergeCells(currentRow, 1, currentRow + COURTS - 1, 1);
+      const restStartCol = 2 + 5 * COURTS + 2;
+      for (let j = 0; j < restPerSide; j++) ws.mergeCells(currentRow, restStartCol + j, currentRow + COURTS - 1, restStartCol + j);
+      const restStartCol2 = restStartCol + restPerSide + 1;
+      for (let j = 0; j < restPerSide; j++) ws.mergeCells(currentRow, restStartCol2 + j, currentRow + COURTS - 1, restStartCol2 + j);
+
+      for (let c = 1; c <= totalCols; c++) {
+        const cell = ws.getCell(currentRow + COURTS - 1, c);
+        cell.border = { ...cell.border, bottom: med };
+      }
+
+      currentRow += COURTS;
+    }
+
+    let cw = 1;
+    ws.getColumn(cw++).width = 7;
+    ws.getColumn(cw++).width = 9;
+    for (let ct = 0; ct < COURTS; ct++) {
+      ws.getColumn(cw++).width = 7; ws.getColumn(cw++).width = 7;
+      ws.getColumn(cw++).width = 4;
+      ws.getColumn(cw++).width = 7; ws.getColumn(cw++).width = 7;
+    }
+    ws.getColumn(cw++).width = 2;
+    for (let j = 0; j < restPerSide; j++) ws.getColumn(cw++).width = 7;
+    ws.getColumn(cw++).width = 2;
+    for (let j = 0; j < restPerSide; j++) ws.getColumn(cw++).width = 7;
+    ws.views = [{ state: 'frozen', ySplit: 3 }];
+
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ピックルボール紅白対抗戦_${d.half*2}人_${COURTS}面_${d.totalGames}試合.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+  } catch(e) {
+    alert('Excel生成エラー: ' + e.message);
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '📥 Excelダウンロード (.xlsx)';
+  }
+}
+
+function loadExcelJS() {
+  return new Promise((resolve, reject) => {
+    if (window.ExcelJS) { resolve(); return; }
+    const script = document.createElement('script');
+    script.src = 'node_modules/exceljs/dist/exceljs.min.js';
+    script.onload = resolve;
+    script.onerror = () => reject(new Error('ExcelJSの読み込みに失敗しました'));
+    document.head.appendChild(script);
+  });
+}
+</script>
+</body>
+</html>
